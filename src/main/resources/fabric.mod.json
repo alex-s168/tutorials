@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "tutorials",
+  "version": "${version}",
+  "name": "Tutorials",
+  "description": "Add data driven tutorials to Minecraft",
+  "authors": [
+    "BillBodkin"
+  ],
+  "contact": {
+    "website": "https://cablepost.co.uk",
+    "repo": "https://gitlab.com/billyg270/tutorials"
+  },
+  "license": "MIT",
+  "icon": "assets/tutorials/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "uk.co.cablepost.tutorials.client.TutorialsClient"
+    ],
+    "main": [
+      "uk.co.cablepost.tutorials.Tutorials"
+    ]
+  },
+  "mixins": [
+    "tutorials.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.3",
+    "fabric": "*",
+    "minecraft": "1.18.2"
+  }
+}
