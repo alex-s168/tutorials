@@ -21,6 +21,7 @@ import uk.co.cablepost.tutorials.Tutorials;
 import uk.co.cablepost.tutorials.client.TutorialsClient;
 
 import java.util.List;
+import java.util.Objects;
 
 @Mixin(ItemStack.class)
 public abstract class ItemStackMixin {
@@ -50,7 +51,18 @@ public abstract class ItemStackMixin {
             cir.getReturnValue().add(new LiteralText("You need to bind the key: '" + new TranslatableText("key.tutorials.open_tutorial").getString() + "' to view tutorial").formatted(Formatting.GOLD));
         }
         else{
-            cir.getReturnValue().add(new LiteralText("Press [" + new TranslatableText(TutorialsClient.keyBinding.getBoundKeyTranslationKey()).getString() + "] to view tutorial").formatted(Formatting.GOLD));
+            String keyName;
+
+            String keyNameTranslationKey = TutorialsClient.keyBinding.getBoundKeyTranslationKey();
+            keyName = new TranslatableText(keyNameTranslationKey).getString();
+            if(Objects.equals(keyNameTranslationKey, keyName)){
+                String keyName2 = TutorialsClient.keyBinding.getBoundKeyLocalizedText().asString();
+                if(!Objects.equals(keyName2, "")){
+                    keyName = keyName2;
+                }
+            }
+
+            cir.getReturnValue().add(new LiteralText("Press [" + keyName + "] to view tutorial").formatted(Formatting.GOLD));
         }
     }
 }

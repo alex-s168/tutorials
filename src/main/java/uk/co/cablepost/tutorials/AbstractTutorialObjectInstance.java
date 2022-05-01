@@ -1,6 +1,10 @@
 package uk.co.cablepost.tutorials;
 
 public class AbstractTutorialObjectInstance {
+
+    public String namespace;
+    public String path;
+
     public Boolean show = null;//used to hide when done
 
     public Boolean lerp = null;

@@ -1,6 +1,7 @@
 package uk.co.cablepost.tutorials.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -11,6 +12,7 @@ import net.minecraft.client.render.model.json.ModelTransformation;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.ResourceTexture;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
@@ -108,6 +110,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 obj.texture_v = 0;
             } catch (IOException e){
                 //TODO - add to tutorial errors
+                System.out.println("Failed to load tutorial texture: " + e);
             }
         }
 
@@ -142,7 +145,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     }
 
     public boolean setTutorial(String tut) {
-        playbackTime = -1f;
+        playbackTime = -1000f;
         tutorial = null;
 
         if(tutorials.containsKey(tut)) {
@@ -166,6 +169,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     //Item
                     TutorialItemObjectInstance x = new TutorialItemObjectInstance();
                     x.itemStack = new ItemStack(Registry.ITEM.get(new Identifier(entry.getValue().item_mod_name, entry.getValue().item_name)));
+                    x.asBlock = entry.getValue().as_block != null ? entry.getValue().as_block : false;
+                    x.namespace = entry.getValue().item_mod_name;
+                    x.path = entry.getValue().item_name;
                     addSceneObject(entry.getKey(), x);
                 }
 
@@ -173,6 +179,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     //Texture
                     TutorialTextureObjectInstance x = new TutorialTextureObjectInstance();
                     x.identifier = new Identifier(entry.getValue().texture_mod_name, entry.getValue().texture_path);
+                    x.namespace = entry.getValue().texture_mod_name;
+                    x.path = entry.getValue().texture_path;
                     addSceneObject(entry.getKey(), x);
                 }
 
@@ -183,6 +191,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 }
             }
         }
+
+        playbackTime = -5f;
         return tutorial != null;
     }
 
@@ -404,7 +414,29 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     //TODO - the other other 11: XYX, XZX, YXY, YZY, ZXZ, ZYZ, XYZ, XZY, YZX, YXZ, ZXY, ZYX
 
 
-                    if(Objects.equals(sceneItem.block_state, "")) {
+                    if(sceneItem.asBlock) {
+                        //Identifier id = Registry.ITEM.getId(sceneItem.itemStack.getItem());
+                        Identifier id = new Identifier(sceneItem.namespace, sceneItem.path);
+                        String block_state_string = id + "[" + (sceneItem.block_state != null ? sceneItem.block_state : "") + "]";
+                        BlockArgumentParser blockArgumentParser = new BlockArgumentParser(new StringReader(block_state_string), true);
+                        try {
+                            blockArgumentParser.parseBlockId();
+                            blockArgumentParser.parseBlockProperties();
+                        } catch (CommandSyntaxException e) {
+                            System.out.println("Tutorial error: " + e);
+                        }
+                        BlockState block_state = blockArgumentParser.getBlockState();
+                        if(block_state != null) {
+                            matrices.translate(-0.5f, 0, -0.5f);
+                            MinecraftClient.getInstance().getBlockRenderManager().renderBlockAsEntity(block_state, matrices, immediate, 255, OverlayTexture.DEFAULT_UV);
+                            matrices.translate(0.5f, 0, 0.5f);
+                        }
+                        else{
+                            //TODO - add to tutorial errors
+                            System.out.println("Tutorial error: " + block_state_string + " was invalid");
+                        }
+                    }
+                    else {
                         MinecraftClient.getInstance().getItemRenderer().renderItem(
                                 sceneItem.itemStack,
                                 ModelTransformation.Mode.NONE,
@@ -414,16 +446,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                                 immediate,
                                 0
                         );
-                    }
-                    else {
-                        try {
-                            NbtCompound blockStateNbt = NbtHelper.fromNbtProviderString(sceneItem.block_state);
-                            BlockState blockState = NbtHelper.toBlockState(blockStateNbt);//Not sure how this works!
-                            MinecraftClient.getInstance().getBlockRenderManager().renderBlockAsEntity(blockState, matrices, immediate, 255, OverlayTexture.DEFAULT_UV);
-                        } catch (CommandSyntaxException e) {
-                            CommandSyntaxException e2 = e;//here so can break on it and see error
-                            //TODO - add error to scene: Invalid block state
-                        }
                     }
 
                     //if (sceneItem.rotation_order.equalsIgnoreCase("xyz")) {
@@ -556,5 +578,10 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean shouldPause() {
+        return true;
     }
 }

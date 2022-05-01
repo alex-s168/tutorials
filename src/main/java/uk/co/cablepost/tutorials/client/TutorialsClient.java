@@ -16,6 +16,7 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
@@ -54,12 +55,11 @@ public class TutorialsClient implements ClientModInitializer {
     public static void onTutorialKey() {
         MinecraftClient client = MinecraftClient.getInstance();
 
-        if(client.player == null){
+        if(client.player == null || client.isPaused()){
             return;
         }
 
         if(client.currentScreen == null){
-
             ItemStack mainHand = client.player.getStackInHand(Hand.MAIN_HAND);
             if(mainHand != null && !mainHand.isEmpty()){
                 openScreenFor(mainHand.getItem(), client);
