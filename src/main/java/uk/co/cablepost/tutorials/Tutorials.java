@@ -49,6 +49,7 @@ public class Tutorials implements ModInitializer {
                                 itemTuts.put(pathParts[3], tut);
                             } catch(Exception e) {
                                 //TUTORIAL_LOG.error("Error occurred while loading resource json " + id.toString(), e);
+                                //TODO - set tutorial to error
                             }
                         }
                     }

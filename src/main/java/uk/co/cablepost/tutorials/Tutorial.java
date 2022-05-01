@@ -5,6 +5,8 @@ import java.util.*;
 public class Tutorial {
     public String display_name = "Unnamed Tutorial";
 
+    public int priority = 0;
+
     public Float fov = 66.0f;
     public Float force_angle = null;
 

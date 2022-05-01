@@ -8,12 +8,16 @@ import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.model.json.ModelTransformation;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.ResourceTexture;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
+import net.minecraft.resource.Resource;
+import net.minecraft.resource.ResourceManager;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
@@ -23,6 +27,8 @@ import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import uk.co.cablepost.tutorials.*;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -33,6 +39,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     public static final Identifier BACKGROUND_TEXTURE_TUT_COMPLETE = new Identifier(Tutorials.MOD_ID, "textures/gui/tutorials/tutorial_complete.png");
     public static final Identifier BUTTONS_TEXTURE = new Identifier(Tutorials.MOD_ID, "textures/gui/tutorials/tutorial_buttons.png");
 
+    private String[] tutorialOrder = null;
     private Map<String, Tutorial> tutorials = null;
     private Tutorial tutorial = null;
 
@@ -62,7 +69,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     }
 
-    private void addSceneObject(String key, AbstractTutorialObjectInstance obj){
+    private void addSceneObject(String key, AbstractTutorialObjectInstance obj) {
         if(scene_objects.containsKey(key)){
             //TODO - add scene error
             //Scene object already exists or a scene object is trying to be an item and a texture
@@ -87,25 +94,54 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         obj.text = "";
         obj.three_d_sprite = false;
 
-        obj.texture_width = 256;
-        obj.texture_crop_x = 100;
-        obj.texture_height = 256;
-        obj.texture_crop_y = 100;
-        obj.texture_u = 0;
-        obj.texture_v = 0;
+        if(obj instanceof TutorialTextureObjectInstance t_obj) {
+            assert client != null;
+            try {
+                Resource resource = client.getResourceManager().getResource(t_obj.identifier);
+                NativeImage nativeImage = NativeImage.read(resource.getInputStream());
+
+                obj.texture_width = nativeImage.getWidth();
+                obj.texture_crop_x = obj.texture_width;
+                obj.texture_height = nativeImage.getHeight();
+                obj.texture_crop_y = obj.texture_height;
+                obj.texture_u = 0;
+                obj.texture_v = 0;
+            } catch (IOException e){
+                //TODO - add to tutorial errors
+            }
+        }
 
         scene_objects.put(key, obj);
     }
 
-    public boolean setTutorials(Identifier identifier) throws Exception {
+    public boolean setTutorials(Identifier identifier) {
         if(Tutorials.tutorials.containsKey(identifier)) {
             tutorials = Tutorials.tutorials.get(identifier);
-            return setTutorial(tutorials.entrySet().iterator().next().getKey());
+            setTutorialOrder();
+            //return setTutorial(tutorials.entrySet().iterator().next().getKey());
+            return setTutorial(tutorialOrder[0]);
         }
         return false;
     }
 
-    public boolean setTutorial(String tut) throws Exception {
+    public void setTutorialOrder(){
+        tutorialOrder = new String[tutorials.size()];
+        int added = 0;
+        while(added < tutorials.size()) {
+            String highest = null;
+            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
+                if(Arrays.stream(tutorialOrder).noneMatch(x -> Objects.equals(x, entry.getKey()))){//not already in tutorialOrder array
+                    if(highest == null || tutorials.get(highest).priority < entry.getValue().priority){//highest of left to add
+                        highest = entry.getKey();
+                    }
+                }
+            }
+            tutorialOrder[added] = highest;
+            added++;
+        }
+    }
+
+    public boolean setTutorial(String tut) {
         playbackTime = -1f;
         tutorial = null;
 
@@ -174,15 +210,23 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if(tutorials != null) {
             int c = 0;
-            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-                if(Objects.equals(entry.getValue().display_name, tutorial.display_name)){
-                    this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 0, 128 - 20, 20);
-                }
-                else if(mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20){
-                    this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 40, 128 - 20, 20);
-                }
-                else{
-                    this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 20, 128 - 20, 20);
+            //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
+            for (String s : tutorialOrder) {
+                //Tutorial tut = entry.getValue();
+                Tutorial tut = tutorials.get(s);
+                boolean mouseOver = mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20;
+                if (Objects.equals(tut.display_name, tutorial.display_name)) {
+                    if (mouseOver) {
+                        this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 120, 128 - 20, 20);
+                    } else {
+                        this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 0, 128 - 20, 20);
+                    }
+                } else {
+                    if (mouseOver) {
+                        this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 40, 128 - 20, 20);
+                    } else {
+                        this.drawTexture(matrices, withMinusBgWidth + 256 + 2, heightMinusBgHeight + c + 15, 0, 20, 128 - 20, 20);
+                    }
                 }
                 c += 20;
             }
@@ -448,7 +492,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if(tutorial != null && playbackTime >= tutorial.endTime + 20){
             RenderSystem.setShaderTexture(0, BUTTONS_TEXTURE);
-            this.drawTexture(matrices, withMinusBgWidth + 208, heightMinusBgHeight + 180, 0, 69, 20, 20);
+            //this.drawTexture(matrices, withMinusBgWidth + 208, heightMinusBgHeight + 180, 0, 69, 20, 20);
+            this.drawTexture(matrices, withMinusBgWidth + 208-10, heightMinusBgHeight + 180-10, 0, 90, 32, 30);
         }
 
         if(playing) {
@@ -475,8 +520,11 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if(tutorials != null) {
             int c = 0;
-            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-                this.textRenderer.draw(matrices, entry.getValue().display_name, 256 + 2 + 5, c + 15 + 6, 0xc6c6c6);
+            //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
+            for(int i = 0; i < tutorialOrder.length; i++){
+                //Tutorial tut = entry.getValue();
+                Tutorial tut = tutorials.get(tutorialOrder[i]);
+                this.textRenderer.draw(matrices, tut.display_name, 256 + 2 + 5, c + 15 + 6, 0xc6c6c6);
                 c += 20;
             }
         }
@@ -494,10 +542,11 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if(tutorials != null) {
             int c = 0;
-            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
+            //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
+            for(int i = 0; i < tutorialOrder.length; i++){
                 if(mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20){
                     try {
-                        setTutorial(entry.getKey());
+                        setTutorial(tutorialOrder[i]);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
