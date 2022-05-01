@@ -1,0 +1,101 @@
+{
+  "display_name": "Obtaining Obsidian",
+  "fov": 45,
+  "force_angle": 0,
+  "scene_objects": {
+    "lava1": {
+      "texture_mod_name": "minecraft",
+      "texture_path": "textures/block/lava_still.png"
+    },
+    "water1": {
+      "texture_mod_name": "tutorials",
+      "texture_path": "textures/gui/tutorials/assets/water.png"
+    },
+    "obsidian1": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "water_bucket": {
+      "item_mod_name": "minecraft",
+      "item_name": "water_bucket"
+    },
+    "pick": {
+      "item_mod_name": "minecraft",
+      "item_name": "diamond_pickaxe"
+    },
+    "text1": {},
+    "text2": {}
+  },
+  "scene_instructions": [
+    {
+      "time": 0,
+      "object_id": "lava1",
+      "show": true,
+      "texture_width": 16,
+      "texture_crop_x": 160,
+      "texture_height": 320,
+      "texture_crop_y": 20,
+      "scale_x": 0.8,
+      "scale_y": 0.8,
+      "scale_z": 0.8,
+      "y": -1
+    },
+    {
+      "time": 20,
+      "object_id": "water_bucket",
+      "show": true,
+      "y": 5,
+      "rotation_x": 180
+    },
+    {
+      "time": 25,
+      "object_id": "water1",
+      "show": true,
+      "texture_width": 16,
+      "texture_crop_x": 8,
+      "texture_height": 16,
+      "texture_crop_y": 16,
+      "scale_x": 0.4,
+      "scale_y": 0.8,
+      "scale_z": 0.4,
+      "y": 2.5
+    },
+    {
+      "time": 60,
+      "object_id": "obsidian1",
+      "show": true,
+      "y": 1
+    },
+    {
+      "time": 90,
+      "object_id": "text1",
+      "show": true,
+      "y": 6.5,
+      "text": "Pouring water onto non-flowing lava"
+    },
+    {
+      "time": 90,
+      "object_id": "text2",
+      "show": true,
+      "y": 6,
+      "text": "will generate obsidian"
+    },
+    {
+      "time": 230,
+      "object_id": "text1",
+      "text": "This can then be mined with a"
+    },
+    {
+      "time": 230,
+      "object_id": "text2",
+      "text": "diamond (or better) pickaxe"
+    },
+    {
+      "time": 250,
+      "object_id": "pick",
+      "show": true,
+      "x": -1,
+      "y": 1.1
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "display_name": "Test",
+  "scene_objects": {
+    "sand1": {
+        "item_mod_name": "minecraft",
+        "item_name": "sand"
+    },
+    "bruh": {
+    },
+    "sprite1": {
+      "texture_mod_name": "tutorials",
+      "texture_path": "textures/gui/tutorials/assets/water.png"
+    }
+  },
+  "scene_instructions": [
+    {
+      "time": 0,
+      "object_id": "sand1",
+      "show": true,
+      "text": "Hello world!"
+    },
+    {
+      "time": 0,
+      "object_id": "sprite1",
+      "show": true,
+      "texture_width": 16,
+      "texture_crop_x": 16,
+      "texture_height": 16,
+      "texture_crop_y": 16,
+      "y": 5,
+      "scale_x": 2,
+      "scale_y": 2,
+      "scale_z": 2,
+      "three_d_sprite": true
+    },
+    {
+      "time": 0,
+      "object_id": "bruh",
+      "show": true,
+      "text": "Bruhhhhhh",
+      "x": 1,
+      "rotation_x": 45,
+      "three_d_sprite": true
+    },
+    {
+      "time": 10,
+      "object_id": "sand1",
+      "y": 1
+    },
+    {
+      "time": 20,
+      "object_id": "sand1",
+      "y": 2
+    },
+    {
+      "time": 40,
+      "object_id": "sand1",
+      "x": 2
+    },
+    {
+      "time": 60,
+      "object_id": "sand1",
+      "z": 2
+    }
+  ]
+}

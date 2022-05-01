@@ -1,0 +1,387 @@
+{
+  "display_name": "Nether Portal",
+  "force_angle": 25,
+  "scene_objects": {
+    "text1": {},
+    "text2": {},
+    "text3": {},
+    "text4": {},
+    "obi1": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi2": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi3": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi4": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi5": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi6": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi7": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi8": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi9": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "obi10": {
+      "item_mod_name": "minecraft",
+      "item_name": "obsidian"
+    },
+    "c_obi": {
+      "item_mod_name": "minecraft",
+      "item_name": "crying_obsidian"
+    },
+    "portal": {
+      "texture_mod_name": "minecraft",
+      "texture_path": "textures/block/nether_portal.png"
+    },
+    "flint": {
+      "item_mod_name": "minecraft",
+      "item_name": "flint_and_steel"
+    }
+  },
+  "scene_instructions": [
+    {
+      "time": 0,
+      "object_id": "text1",
+      "show": true,
+      "y": 9,
+      "text": "",
+      "scale_x": 1.3,
+      "scale_y": 1.3,
+      "scale_z": 1.3
+    },
+    {
+      "time": 0,
+      "object_id": "text2",
+      "show": true,
+      "y": 8.4,
+      "text": "",
+      "scale_x": 1.3,
+      "scale_y": 1.3,
+      "scale_z": 1.3
+    },
+    {
+      "time": 0,
+      "object_id": "text3",
+      "show": true,
+      "y": 7.8,
+      "text": "",
+      "scale_x": 1.3,
+      "scale_y": 1.3,
+      "scale_z": 1.3
+    },
+    {
+      "time": 0,
+      "object_id": "text4",
+      "show": true,
+      "y": 7.2,
+      "text": "",
+      "scale_x": 1.3,
+      "scale_y": 1.3,
+      "scale_z": 1.3
+    },
+    {
+      "time": 10,
+      "object_id": "obi1",
+      "show": true,
+      "x": 0.5
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi2",
+      "show": true,
+      "x": -0.5
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi3",
+      "show": true,
+      "x": -1.5,
+      "y": 1
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi4",
+      "show": true,
+      "x": -1.5,
+      "y": 2
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi5",
+      "show": true,
+      "x": -1.5,
+      "y": 3
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi6",
+      "show": true,
+      "x": -0.5,
+      "y": 4
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi7",
+      "show": true,
+      "x": 0.5,
+      "y": 4
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi8",
+      "show": true,
+      "x": 1.5,
+      "y": 3
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi9",
+      "show": true,
+      "x": 1.5,
+      "y": 2
+    },
+    {
+      "relative_time": 4,
+      "object_id": "obi10",
+      "show": true,
+      "x": 1.5,
+      "y": 1
+    },
+    {
+      "relative_time": 20,
+      "object_id": "text1",
+      "text": "A nether portal is built from obsidian"
+    },
+    {
+      "relative_time": 20,
+      "object_id": "text2",
+      "text": "The frame must be at least 5 blocks tall"
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": "and 4 blocks wide"
+    },
+    {
+      "relative_time": 40,
+      "object_id": "text4",
+      "text": "The corner blocks do not matter"
+    },
+    {
+      "relative_time": 90,
+      "object_id": "text1",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text4",
+      "text": ""
+    },
+    {
+      "relative_time": 20,
+      "object_id": "obi4",
+      "show": false
+    },
+    {
+      "relative_time": 20,
+      "object_id": "c_obi",
+      "show": true,
+      "x": -1.5,
+      "y": 2
+    },
+    {
+      "relative_time": 20,
+      "object_id": "text1",
+      "text": "The portal cannot contain"
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": "crying obsidian"
+    },
+    {
+      "relative_time": 60,
+      "object_id": "text1",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text4",
+      "text": ""
+    },
+    {
+      "relative_time": 20,
+      "object_id": "c_obi",
+      "show": false
+    },
+    {
+      "relative_time": 20,
+      "object_id": "obi4",
+      "show": true
+    },
+    {
+      "relative_time": 40,
+      "object_id": "flint",
+      "show": true,
+      "x": 0.2,
+      "y": 1.5,
+      "z": 0.5,
+      "rotation_y": 0
+    },
+    {
+      "relative_time": 15,
+      "object_id": "portal",
+      "show": true,
+      "texture_width": 16,
+      "texture_crop_x": 32,
+      "texture_height": 512,
+      "texture_crop_y": 48,
+      "scale_x": 0.25,
+      "scale_y": 0.25,
+      "scale_z": 0.25,
+      "y": 2,
+      "three_d_sprite": true
+    },
+    {
+      "relative_time": 20,
+      "object_id": "text1",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text4",
+      "text": ""
+    },
+    {
+      "relative_time": 10,
+      "object_id": "text1",
+      "text": "Use a flint and steel to light the portal"
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": "by igniting the inside of portal"
+    },
+    {
+      "relative_time": 90,
+      "object_id": "text1",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text4",
+      "text": ""
+    },
+    {
+      "relative_time": 10,
+      "object_id": "flint",
+      "show": false
+    },
+    {
+      "relative_time": 25,
+      "object_id": "text1",
+      "text": "Fire spreading can also light a portal."
+    },
+    {
+      "relative_time": 40,
+      "object_id": "text2",
+      "text": "This can be achieved by placing"
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": "a flammable block next to the base"
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text4",
+      "text": "of the portal with lava or fire nearby"
+    },
+    {
+      "relative_time": 90,
+      "object_id": "text1",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text2",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text3",
+      "text": ""
+    },
+    {
+      "relative_time": 0,
+      "object_id": "text4",
+      "text": ""
+    },
+    {
+      "relative_time": 10,
+      "object_id": "text1",
+      "text": "The max size of a portal is 23x23"
+    }
+  ]
+}
