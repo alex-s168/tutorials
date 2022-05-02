@@ -16,11 +16,13 @@ import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.screen.PlayerScreenHandler;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Identifier;
@@ -28,6 +30,7 @@ import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import uk.co.cablepost.tutorials.*;
+import uk.co.cablepost.tutorials.client.TutorialsClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -49,8 +52,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     private float lastPlaybackTime = 0f;
 
     public boolean playing = true;
+    public int playbackSpeed = 1;
 
-    private Map<String, AbstractTutorialObjectInstance> scene_objects = new HashMap<>();
+    private final Map<String, AbstractTutorialObjectInstance> scene_objects = new HashMap<>();
 
     public TutorialScreen(PlayerScreenHandler handler, PlayerInventory inventory, Text title) {
         super(new TutorialScreenHandler(), inventory, title);
@@ -145,6 +149,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     }
 
     public boolean setTutorial(String tut) {
+        playbackSpeed = 1;
         playbackTime = -1000f;
         tutorial = null;
 
@@ -192,14 +197,15 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             }
         }
 
-        playbackTime = -5f;
+        playbackSpeed = 1;
+        playbackTime = -8f;
         return tutorial != null;
     }
 
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
         if(tutorial != null && playing) {
-            playbackTime += delta;
+            playbackTime += delta * (float)playbackSpeed;
         }
 
         DiffuseLighting.disableGuiDepthLighting();
@@ -241,7 +247,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 c += 20;
             }
         }
-
 
         int scaleFactor = (int)this.client.getWindow().getScaleFactor();
         int realWidth = this.client.getWindow().getFramebufferWidth();
@@ -505,6 +510,20 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             }
         }
 
+        //--- Draw an item as prevents textures going over the play buttons?
+        matrices.translate(0f, 50f, 0f);
+
+        MinecraftClient.getInstance().getItemRenderer().renderItem(
+                Items.ACACIA_BOAT.getDefaultStack(),
+                ModelTransformation.Mode.NONE,
+                255,
+                OverlayTexture.DEFAULT_UV,
+                matrices,
+                immediate,
+                0
+        );
+        //---
+
         immediate.draw();
         matrices.pop();
         RenderSystem.viewport(0, 0, this.client.getWindow().getFramebufferWidth(), this.client.getWindow().getFramebufferHeight());
@@ -512,10 +531,35 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         DiffuseLighting.enableGuiDepthLighting();
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+        RenderSystem.setShaderTexture(0, BUTTONS_TEXTURE);
+
         if(tutorial != null && playbackTime >= tutorial.endTime + 20){
-            RenderSystem.setShaderTexture(0, BUTTONS_TEXTURE);
-            //this.drawTexture(matrices, withMinusBgWidth + 208, heightMinusBgHeight + 180, 0, 69, 20, 20);
             this.drawTexture(matrices, withMinusBgWidth + 208-10, heightMinusBgHeight + 180-10, 0, 90, 32, 30);
+            playbackSpeed = 0;
+        }
+
+        for(int i = 0; i <= 3; i++){
+            int x = withMinusBgWidth + 128 + (18 * (i - 2));
+            int y = heightMinusBgHeight + 224 - 18 - 6;
+
+            boolean mouseOver =
+                    mouseX >= x &&
+                    mouseX <= x + 18 &&
+                    mouseY >= y &&
+                    mouseY <= y + 18
+            ;
+
+            int v = 140;
+
+            if (mouseOver) {
+                v += 18;
+            }
+
+            if (playbackSpeed == i) {
+                v += 18 * 2;
+            }
+
+            this.drawTexture(matrices, x, y, i * 18, v, 18, 18);
         }
 
         if(playing) {
@@ -559,6 +603,10 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if(client == null){
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+
         int withMinusBgWidth = (this.width - this.backgroundWidth) / 2;
         int heightMinusBgHeight = (this.height - this.backgroundHeight) / 2;
 
@@ -568,12 +616,49 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             for(int i = 0; i < tutorialOrder.length; i++){
                 if(mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20){
                     try {
+                        client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
                         setTutorial(tutorialOrder[i]);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
+                        //TODO
                     }
                 }
                 c += 20;
+            }
+
+            if(tutorial != null && playing){
+                for(int i = 0; i <= 3; i++){
+                    int x = withMinusBgWidth + 128 + (18 * (i - 2));
+                    int y = heightMinusBgHeight + 224 - 18 - 6;
+
+                    boolean mouseOver =
+                            mouseX >= x &&
+                            mouseX <= x + 18 &&
+                            mouseY >= y &&
+                            mouseY <= y + 18
+                    ;
+
+                    if(mouseOver){
+                        if(playbackTime >= tutorial.endTime + 20){
+                            if(i != 0){
+                                for (String s : tutorialOrder) {
+                                    Tutorial tut = tutorials.get(s);
+                                    if (Objects.equals(tut.display_name, tutorial.display_name)) {
+                                        setTutorial(s);
+                                    }
+                                }
+                                client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
+                                playbackSpeed = i;
+                            }
+                        }
+                        else{
+                            if(playbackSpeed != i) {
+                                client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
+                                playbackSpeed = i;
+                            }
+                        }
+                    }
+                }
             }
         }
 
