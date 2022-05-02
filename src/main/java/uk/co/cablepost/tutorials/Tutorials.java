@@ -10,6 +10,8 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +24,8 @@ public class Tutorials implements ModInitializer {
 
     public static Map<Identifier, Map<String, Tutorial>> tutorials = new HashMap<>();
 
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
     @Override
     public void onInitialize() {
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(
@@ -32,25 +36,28 @@ public class Tutorials implements ModInitializer {
                         tutorials.clear();
 
                         for(Identifier id : manager.findResources("tutorials", path -> path.endsWith(".json"))) {
+                            String[] pathParts = id.getPath().replace(".json", "").split("/");
+                            Identifier identifier = new Identifier(pathParts[1], pathParts[2]);
+
+                            Tutorial tut;
+
                             try(InputStream stream = manager.getResource(id).getInputStream()) {
                                 String str = IOUtils.toString(stream, StandardCharsets.UTF_8);
-                                Tutorial tut = GSON.fromJson(str, Tutorial.class);
-
-                                String[] pathParts = id.getPath().replace(".json", "").split("/");
-
-                                Identifier identifier = new Identifier(pathParts[1], pathParts[2]);
-
-                                if(!tutorials.containsKey(identifier)){
-                                    tutorials.put(identifier, new HashMap<>());
-                                }
-
-                                Map<String, Tutorial> itemTuts = tutorials.get(identifier);
-
-                                itemTuts.put(pathParts[3], tut);
+                                tut = GSON.fromJson(str, Tutorial.class);
                             } catch(Exception e) {
-                                //TUTORIAL_LOG.error("Error occurred while loading resource json " + id.toString(), e);
-                                //TODO - set tutorial to error
+                                String msg = "Error while loading tutorial '" + id.getPath() + "': " + e;
+                                LOGGER.error(msg);
+                                tut = new Tutorial();
+                                tut.display_name = "Tutorial that failed to load :(";
+                                tut.error_message = msg;
                             }
+
+                            if(!tutorials.containsKey(identifier)){
+                                tutorials.put(identifier, new HashMap<>());
+                            }
+
+                            Map<String, Tutorial> itemTuts = tutorials.get(identifier);
+                            itemTuts.put(pathParts[3], tut);
                         }
                     }
 

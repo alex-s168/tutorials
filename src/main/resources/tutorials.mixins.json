@@ -6,8 +6,9 @@
   "mixins": [
   ],
   "client": [
+    "ItemStackMixin",
     "ScreenMixin",
-    "ItemStackMixin"
+    "TextFieldWidgetMixin"
   ],
   "injectors": {
     "defaultRequire": 1

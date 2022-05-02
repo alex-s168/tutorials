@@ -6,22 +6,15 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import org.lwjgl.glfw.GLFW;
-import uk.co.cablepost.tutorials.Tutorial;
 import uk.co.cablepost.tutorials.Tutorials;
 import uk.co.cablepost.tutorials.client.screen.TutorialScreen;
 
@@ -30,7 +23,8 @@ public class TutorialsClient implements ClientModInitializer {
 
     public static KeyBinding keyBinding;
     public static Item mouseOverItem;
-    public static int mouseOverItemLastTime;
+    public static int timeSinceMouseOverItem;
+    public static int timeSinceMouseTextInputFocus;
 
     @Override
     public void onInitializeClient() {
@@ -42,6 +36,13 @@ public class TutorialsClient implements ClientModInitializer {
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if(timeSinceMouseOverItem < 10) {
+                timeSinceMouseOverItem++;
+            }
+            if(timeSinceMouseTextInputFocus < 10) {
+                timeSinceMouseTextInputFocus++;
+            }
+
             while (keyBinding.wasPressed()) {
                 try {
                     onTutorialKey();
@@ -55,7 +56,11 @@ public class TutorialsClient implements ClientModInitializer {
     public static void onTutorialKey() {
         MinecraftClient client = MinecraftClient.getInstance();
 
-        if(client.player == null || client.isPaused()){
+        if(client.player == null){
+            return;
+        }
+
+        if(timeSinceMouseTextInputFocus < 2){
             return;
         }
 
@@ -76,7 +81,7 @@ public class TutorialsClient implements ClientModInitializer {
             return;
         }
 
-        if(mouseOverItemLastTime + 1 < client.player.age){
+        if(timeSinceMouseOverItem > 2){
             client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1.0f, 1.0f);
             return;
         }

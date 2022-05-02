@@ -10,17 +10,13 @@ import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.model.json.ModelTransformation;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.ResourceTexture;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceManager;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
@@ -30,7 +26,6 @@ import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import uk.co.cablepost.tutorials.*;
-import uk.co.cablepost.tutorials.client.TutorialsClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -56,12 +51,12 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     private final Map<String, AbstractTutorialObjectInstance> scene_objects = new HashMap<>();
 
-    public TutorialScreen(PlayerScreenHandler handler, PlayerInventory inventory, Text title) {
+    public TutorialScreen(PlayerInventory inventory, Text title) {
         super(new TutorialScreenHandler(), inventory, title);
     }
 
     public TutorialScreen(PlayerEntity player) {
-        this(player.playerScreenHandler, player.getInventory(), new TranslatableText("container.tutorial"));
+        this(player.getInventory(), new TranslatableText("container.tutorial"));
         this.passEvents = true;
         backgroundWidth = 256 + 128;
         backgroundHeight = 224;
@@ -77,8 +72,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     private void addSceneObject(String key, AbstractTutorialObjectInstance obj) {
         if(scene_objects.containsKey(key)){
-            //TODO - add scene error
-            //Scene object already exists or a scene object is trying to be an item and a texture
+            tutorial.error_message = "Scene object '" + key + "' already exists or a scene object is trying to be an item and a texture";
             return;
         }
 
@@ -113,8 +107,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 obj.texture_u = 0;
                 obj.texture_v = 0;
             } catch (IOException e){
-                //TODO - add to tutorial errors
-                System.out.println("Failed to load tutorial texture: " + e);
+                tutorial.error_message = "Failed to load tutorial texture: " + e;
             }
         }
 
@@ -202,6 +195,11 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         return tutorial != null;
     }
 
+    float lerp(float a, float b, float f)
+    {
+        return a + f * (b - a);
+    }
+
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
         if(tutorial != null && playing) {
@@ -269,7 +267,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         matrices.translate(-0f, -2f, -10f);
 
-        float sceneRotation = (tutorial.force_angle != null) ? tutorial.force_angle : (((float)mouseX / realWidth * 1000) + 90 + 45);
+        float sceneRotation = tutorial.force_angle ? tutorial.angle : (((float)mouseX / realWidth * 1000) + 90 + 45);
         matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(sceneRotation));
 
         VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
@@ -277,29 +275,123 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         //MinecraftClient.getInstance().getItemRenderer().renderItem(new ItemStack(Items.STONE), ModelTransformation.Mode.NONE, 255, OverlayTexture.DEFAULT_UV, matrices, immediate, 0);
 
         if(tutorial != null) {
+
+            tutorial.last_fov_instruction = null;
+            tutorial.next_fov_instruction = null;
+            tutorial.last_angle_instruction = null;
+            tutorial.next_angle_instruction = null;
+
+            for (int i = 0; i < tutorial.scene_instructions.size(); i++) {
+                TutorialInstruction instruction = tutorial.scene_instructions.get(i);
+
+                if(instruction.fov != null){
+                    if(
+                            instruction.time <= playbackTime &&
+                            (
+                                    tutorial.last_fov_instruction == null ||
+                                    tutorial.scene_instructions.get(tutorial.last_fov_instruction).time > instruction.time
+                            )
+                    ){
+                        tutorial.last_fov_instruction = i;
+                    }
+
+                    if(
+                            instruction.time > playbackTime &&
+                            (
+                                    tutorial.next_fov_instruction == null ||
+                                    tutorial.scene_instructions.get(tutorial.next_fov_instruction).time < instruction.time
+                            )
+                    ){
+                        tutorial.next_fov_instruction = i;
+                    }
+                }
+
+                if(instruction.angle != null){
+                    if(
+                            instruction.time <= playbackTime &&
+                                    (
+                                            tutorial.last_angle_instruction == null ||
+                                                    tutorial.scene_instructions.get(tutorial.last_angle_instruction).time > instruction.time
+                                    )
+                    ){
+                        tutorial.last_angle_instruction = i;
+                    }
+
+                    if(
+                            instruction.time > playbackTime &&
+                                    (
+                                            tutorial.next_angle_instruction == null ||
+                                                    tutorial.scene_instructions.get(tutorial.next_angle_instruction).time < instruction.time
+                                    )
+                    ){
+                        tutorial.next_angle_instruction = i;
+                    }
+                }
+            }
+
+            for (Map.Entry<String, AbstractTutorialObjectInstance> sceneItemEntry : scene_objects.entrySet()) {
+                AbstractTutorialObjectInstance sceneItem = sceneItemEntry.getValue();
+                sceneItem.last_instruction = null;
+                sceneItem.next_instruction = null;
+
+                for (int i = 0; i < tutorial.scene_instructions.size(); i++) {
+                    TutorialInstruction instruction = tutorial.scene_instructions.get(i);
+                    if(Objects.equals(instruction.object_id, sceneItemEntry.getKey())){
+                        if(
+                                instruction.time <= playbackTime &&
+                                (
+                                        sceneItem.last_instruction == null ||
+                                        tutorial.scene_instructions.get(sceneItem.last_instruction).time > instruction.time
+                                )
+                        ){
+                            sceneItem.last_instruction = i;
+                        }
+
+                        if(
+                                instruction.time > playbackTime &&
+                                (
+                                        sceneItem.next_instruction == null ||
+                                        tutorial.scene_instructions.get(sceneItem.next_instruction).time < instruction.time
+                                )
+                        ){
+                            sceneItem.next_instruction = i;
+                        }
+                    }
+                }
+            }
+
             for (int i = 0; i < tutorial.scene_instructions.size(); i++) {
                 TutorialInstruction instruction = tutorial.scene_instructions.get(i);
                 if(instruction.time > lastPlaybackTime && instruction.time <= playbackTime){
                     //apply instruction now
-                    if(scene_objects.containsKey(instruction.object_id)) {
+                    if(instruction.object_id != null && scene_objects.containsKey(instruction.object_id)) {
                         AbstractTutorialObjectInstance obj = scene_objects.get(instruction.object_id);
 
                         obj.show = (instruction.show == null) ? obj.show : instruction.show;
                         obj.lerp = (instruction.lerp == null) ? obj.lerp : instruction.lerp;
 
                         obj.x = (instruction.x == null) ? obj.x : instruction.x;
+                        instruction.x = obj.x;
                         obj.y = (instruction.y == null) ? obj.y : instruction.y;
+                        instruction.y = obj.y;
                         obj.z = (instruction.z == null) ? obj.z : instruction.z;
+                        instruction.z = obj.z;
 
                         obj.rotation_x = (instruction.rotation_x == null) ? obj.rotation_x : instruction.rotation_x;
+                        instruction.rotation_x = obj.rotation_x;
                         obj.rotation_y = (instruction.rotation_y == null) ? obj.rotation_y : instruction.rotation_y;
+                        instruction.rotation_y = obj.rotation_y;
                         obj.rotation_z = (instruction.rotation_z == null) ? obj.rotation_z : instruction.rotation_z;
+                        instruction.rotation_z = obj.rotation_z;
 
                         //obj.rotation_order = instruction.rotation_order;
 
                         obj.scale_x = (instruction.scale_x == null) ? obj.scale_x : instruction.scale_x;
+                        instruction.scale_x = obj.scale_x;
                         obj.scale_y = (instruction.scale_y == null) ? obj.scale_y : instruction.scale_y;
+                        instruction.scale_y = obj.scale_y;
                         obj.scale_z = (instruction.scale_z == null) ? obj.scale_z : instruction.scale_z;
+                        instruction.scale_z = obj.scale_z;
 
                         obj.text = (instruction.text == null) ? obj.text : instruction.text;
                         obj.three_d_sprite = (instruction.three_d_sprite == null) ? obj.three_d_sprite : instruction.three_d_sprite;
@@ -313,14 +405,128 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         obj.texture_u = (instruction.texture_u == null) ? obj.texture_u : instruction.texture_u;
                         obj.texture_v = (instruction.texture_v == null) ? obj.texture_v : instruction.texture_v;
                     }
-                    else{
-                        //TODO - add tutorial error: ("Could not find scene object with id: " + instruction.object_id);
+                    else if(instruction.object_id != null){
+                        tutorial.error_message = "Could not find scene object with id: " + instruction.object_id;
                     }
+
+                    tutorial.lerp_fov = (instruction.lerp_fov == null) ? tutorial.lerp_fov : instruction.lerp_fov;
+                    tutorial.lerp_angle = (instruction.lerp_angle == null) ? tutorial.lerp_angle : instruction.lerp_angle;
+
+                    tutorial.fov = (instruction.fov == null) ? tutorial.fov : instruction.fov;
+                    tutorial.angle = (instruction.angle == null) ? tutorial.angle : instruction.angle;
+                    tutorial.force_angle = (instruction.force_angle == null) ? tutorial.force_angle : instruction.force_angle;
                 }
             }
 
+            if(tutorial.lerp_fov && tutorial.last_fov_instruction != null && tutorial.next_fov_instruction != null){
+                TutorialInstruction last_instruction = tutorial.scene_instructions.get(tutorial.last_fov_instruction);
+                TutorialInstruction next_instruction = tutorial.scene_instructions.get(tutorial.next_fov_instruction);
+                float timeProg01 = (playbackTime - last_instruction.time) / (next_instruction.time - last_instruction.time);
+
+                tutorial.fov = lerp(
+                        last_instruction.fov,
+                        next_instruction.fov,
+                        timeProg01
+                );
+            }
+
+            if(tutorial.lerp_angle && tutorial.last_angle_instruction != null && tutorial.next_angle_instruction != null){
+                TutorialInstruction last_instruction = tutorial.scene_instructions.get(tutorial.last_angle_instruction);
+                TutorialInstruction next_instruction = tutorial.scene_instructions.get(tutorial.next_angle_instruction);
+                float timeProg01 = (playbackTime - last_instruction.time) / (next_instruction.time - last_instruction.time);
+
+                tutorial.angle = lerp(
+                        last_instruction.angle,
+                        next_instruction.angle,
+                        timeProg01
+                );
+            }
+
             for (Map.Entry<String, AbstractTutorialObjectInstance> sceneItemEntry : scene_objects.entrySet()) {
-                if (sceneItemEntry.getValue() instanceof TutorialTextureObjectInstance sceneItem) {
+
+                AbstractTutorialObjectInstance sceneItemEntryValue = sceneItemEntry.getValue();
+
+                if(sceneItemEntryValue.lerp && sceneItemEntryValue.last_instruction != null && sceneItemEntryValue.next_instruction != null){
+
+                    TutorialInstruction last_instruction = tutorial.scene_instructions.get(sceneItemEntryValue.last_instruction);
+                    TutorialInstruction next_instruction = tutorial.scene_instructions.get(sceneItemEntryValue.next_instruction);
+
+                    float timeProg01 = (playbackTime - last_instruction.time) / (next_instruction.time - last_instruction.time);
+
+                    if(next_instruction.x != null) {
+                        sceneItemEntryValue.x = lerp(
+                                last_instruction.x,
+                                next_instruction.x,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.y != null) {
+                        sceneItemEntryValue.y = lerp(
+                                last_instruction.y,
+                                next_instruction.y,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.z != null) {
+                        sceneItemEntryValue.z = lerp(
+                                last_instruction.z,
+                                next_instruction.z,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.rotation_x != null) {
+                        sceneItemEntryValue.rotation_x = lerp(
+                                last_instruction.rotation_x,
+                                next_instruction.rotation_x,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.rotation_y != null) {
+                        sceneItemEntryValue.rotation_y = lerp(
+                                last_instruction.rotation_y,
+                                next_instruction.rotation_y,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.rotation_z != null) {
+                        sceneItemEntryValue.rotation_z = lerp(
+                                last_instruction.rotation_z,
+                                next_instruction.rotation_z,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.scale_x != null) {
+                        sceneItemEntryValue.scale_x = lerp(
+                                last_instruction.scale_x,
+                                next_instruction.scale_x,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.scale_y != null) {
+                        sceneItemEntryValue.scale_y = lerp(
+                                last_instruction.scale_y,
+                                next_instruction.scale_y,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.scale_z != null) {
+                        sceneItemEntryValue.scale_z = lerp(
+                                last_instruction.scale_z,
+                                next_instruction.scale_z,
+                                timeProg01
+                        );
+                    }
+                }
+
+                if (sceneItemEntryValue instanceof TutorialTextureObjectInstance sceneItem) {
 
                     if (!sceneItem.show) {
                         continue;
@@ -401,7 +607,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             for (Map.Entry<String, AbstractTutorialObjectInstance> sceneItemEntry : scene_objects.entrySet()) {
 
-                if(sceneItemEntry.getValue() instanceof TutorialItemObjectInstance sceneItem) {
+                AbstractTutorialObjectInstance sceneItemEntryValue = sceneItemEntry.getValue();
+
+                if(sceneItemEntryValue instanceof TutorialItemObjectInstance sceneItem) {
 
                     if (!sceneItem.show) {
                         continue;
@@ -437,8 +645,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                             matrices.translate(0.5f, 0, 0.5f);
                         }
                         else{
-                            //TODO - add to tutorial errors
-                            System.out.println("Tutorial error: " + block_state_string + " was invalid");
+                            tutorial.error_message = "'" + block_state_string + "' was invalid for '" + sceneItemEntry.getKey() + "'";
                         }
                     }
                     else {
@@ -464,8 +671,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
                     matrices.translate(-sceneItem.x, -sceneItem.y, -sceneItem.z);
                 }
-
-                AbstractTutorialObjectInstance sceneItemEntryValue = sceneItemEntry.getValue();
 
                 String text = sceneItemEntryValue.text;
                 if(text != null && !text.equals("")) {
@@ -571,18 +776,53 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         this.renderBackground(matrices);
         super.render(matrices,mouseX,mouseY,delta);
+        this.drawMouseoverTooltip(matrices, mouseX, mouseY);
+    }
+
+    @Override
+    protected void drawMouseoverTooltip(MatrixStack matrices, int x, int y) {
+        int withMinusBgWidth = (this.width - this.backgroundWidth) / 2;
+        int heightMinusBgHeight = (this.height - this.backgroundHeight) / 2;
+
+        int related_c = 0;
+        for (String related_item : tutorial.related_items) {
+            if(related_c < 7) {
+                ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(new Identifier(related_item)));
+                //MinecraftClient.getInstance().getItemRenderer().renderInGuiWithOverrides(related_item_item_stack, 256 + 2 + (related_c * 18), 190, 0, 0);
+                int rx = withMinusBgWidth + 256 + 2 + (related_c * 18);
+                int ry = heightMinusBgHeight + 190;
+                if (x >= rx && x <= rx + 16 && y >= ry && y <= ry + 16) {
+                    this.renderTooltip(matrices, related_item_item_stack, x, y);
+                }
+                related_c++;
+            }
+        }
     }
 
     @Override
     protected void drawForeground(MatrixStack matrices, int mouseX, int mouseY){
         if(tutorial != null){
             textRenderer.draw(matrices, tutorial.display_name, (float)this.titleX, (float)this.titleY, 0x404040);
+            if(tutorial.error_message != null && !tutorial.error_message.equals("")){
+                textRenderer.draw(matrices, tutorial.error_message, 30, 30, 0xFF4040);//TODO - wrap text
+            }
         }
         else{
             textRenderer.draw(matrices, this.title, (float)this.titleX, (float)this.titleY, 0x404040);
         }
 
-        //MinecraftClient.getInstance().getItemRenderer().renderInGuiWithOverrides(new ItemStack(Items.DEAD_BUBBLE_CORAL), 20, 20, 0, 0);
+        if(tutorial.related_items.size() > 0){
+            textRenderer.draw(matrices, "Related items:", 256f + 2f, 180f, 0x404040);
+        }
+
+        int related_c = 0;
+        for (String related_item : tutorial.related_items) {
+            if(related_c < 7) {
+                ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(new Identifier(related_item)));
+                MinecraftClient.getInstance().getItemRenderer().renderInGuiWithOverrides(related_item_item_stack, 256 + 2 + (related_c * 18), 190, 0, 0);
+                related_c++;
+            }
+        }
 
         if(tutorials != null) {
             int c = 0;
@@ -619,8 +859,11 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
                         setTutorial(tutorialOrder[i]);
                     } catch (Exception e) {
-                        throw new RuntimeException(e);
-                        //TODO
+                        if (tutorial == null) {
+                            tutorial = new Tutorial();
+                            tutorial.display_name = "Tutorial that failed to load :(";
+                        }
+                        tutorial.error_message = "Error loading tutorial: " + e;
                     }
                 }
                 c += 20;

@@ -4,7 +4,6 @@ import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
@@ -40,7 +39,7 @@ public abstract class ItemStackMixin {
         }
 
         TutorialsClient.mouseOverItem = getItem();
-        TutorialsClient.mouseOverItemLastTime = player.age;
+        TutorialsClient.timeSinceMouseOverItem = 0;
 
         Identifier id = Registry.ITEM.getId(getItem());
         if(!Tutorials.tutorials.containsKey(id)){
@@ -60,6 +59,10 @@ public abstract class ItemStackMixin {
                 if(!Objects.equals(keyName2, "")){
                     keyName = keyName2;
                 }
+            }
+
+            if(TutorialsClient.timeSinceMouseTextInputFocus < 2){
+                cir.getReturnValue().add(new LiteralText("When a text input is not selected,").formatted(Formatting.GOLD));
             }
 
             cir.getReturnValue().add(new LiteralText("Press [" + keyName + "] to view tutorial").formatted(Formatting.GOLD));

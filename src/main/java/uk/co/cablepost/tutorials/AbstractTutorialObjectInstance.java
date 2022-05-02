@@ -32,4 +32,7 @@ public class AbstractTutorialObjectInstance {
     public Integer texture_crop_y = null;
     public Integer texture_u = null;
     public Integer texture_v = null;
+
+    public Integer last_instruction = null;
+    public Integer next_instruction = null;
 }

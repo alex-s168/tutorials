@@ -1,8 +1,10 @@
 {
-  "display_name": "Obtaining Obsidian",
+  "display_name": "Generating Obsidian",
   "priority": 100,
-  "fov": 45,
-  "force_angle": 0,
+  "related_items": [
+    "lava_bucket",
+    "water_bucket"
+  ],
   "scene_objects": {
     "lava1": {
       "texture_mod_name": "minecraft",
@@ -28,6 +30,12 @@
     "text2": {}
   },
   "scene_instructions": [
+    {
+      "time": 0,
+      "fov": 45,
+      "force_angle": true,
+      "angle": 0
+    },
     {
       "time": 0,
       "object_id": "lava1",

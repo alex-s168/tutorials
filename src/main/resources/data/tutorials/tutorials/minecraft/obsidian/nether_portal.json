@@ -1,6 +1,9 @@
 {
   "display_name": "Nether Portal",
-  "force_angle": 25,
+  "related_items": [
+    "flint_and_steel",
+    "crying_obsidian"
+  ],
   "scene_objects": {
     "text1": {},
     "text2": {},
@@ -60,6 +63,11 @@
     }
   },
   "scene_instructions": [
+    {
+      "time": 0,
+      "force_angle": true,
+      "angle": 25
+    },
     {
       "time": 0,
       "object_id": "text1",

@@ -29,6 +29,12 @@
   "scene_instructions": [
     {
       "time": 0,
+      "force_angle": true,
+      "lerp_angle": true,
+      "angle": -50
+    },
+    {
+      "time": 0,
       "object_id": "text1",
       "show": true,
       "y": 9,
@@ -78,6 +84,29 @@
       "relative_time": 0,
       "object_id": "top_hopper",
       "show": true,
+      "y": 10,
+      "lerp": true
+    },
+    {
+      "relative_time": 0,
+      "object_id": "side_hopper",
+      "show": true,
+      "x": 10,
+      "y": 1,
+      "block_state": "facing=west",
+      "lerp": true
+    },
+    {
+      "relative_time": 0,
+      "object_id": "bottom_hopper",
+      "show": true,
+      "y": -10,
+      "lerp": true
+    },
+    {
+      "relative_time": 20,
+      "object_id": "top_hopper",
+      "show": true,
       "y": 2
     },
     {
@@ -93,6 +122,10 @@
       "object_id": "bottom_hopper",
       "show": true,
       "y": 0
+    },
+    {
+      "relative_time": 0,
+      "angle": 0
     }
   ]
 }
