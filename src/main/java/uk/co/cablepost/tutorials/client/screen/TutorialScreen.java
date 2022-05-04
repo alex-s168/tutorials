@@ -25,6 +25,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
+import org.apache.commons.lang3.SerializationUtils;
 import uk.co.cablepost.tutorials.*;
 
 import java.io.IOException;
@@ -42,6 +43,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     private String[] tutorialOrder = null;
     private Map<String, Tutorial> tutorials = null;
     private Tutorial tutorial = null;
+
+    private Identifier tutorialItem = null;
 
     private float playbackTime = 0f;
     private float lastPlaybackTime = 0f;
@@ -73,6 +76,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     private void addSceneObject(String key, AbstractTutorialObjectInstance obj) {
         if(scene_objects.containsKey(key)){
             tutorial.error_message = "Scene object '" + key + "' already exists or a scene object is trying to be an item and a texture";
+            Tutorials.LOGGER.error(tutorial.error_message);
             return;
         }
 
@@ -108,6 +112,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 obj.texture_v = 0;
             } catch (IOException e){
                 tutorial.error_message = "Failed to load tutorial texture: " + e;
+                Tutorials.LOGGER.error(tutorial.error_message);
             }
         }
 
@@ -116,7 +121,39 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     public boolean setTutorials(Identifier identifier) {
         if(Tutorials.tutorials.containsKey(identifier)) {
+            tutorialItem = identifier;
             tutorials = Tutorials.tutorials.get(identifier);
+
+            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
+                Tutorial tut = entry.getValue();
+                if(tut.copy != null && !tut.copy.equals("")){
+                    String[] tutToCopyParts = tut.copy.split("/");
+                    if(tutToCopyParts.length == 2){
+                        Identifier itemIdOfTutToCopy = new Identifier(tutToCopyParts[0]);
+                        if(Tutorials.tutorials.containsKey(itemIdOfTutToCopy)){
+                            Map<String, Tutorial> itemTutorials = Tutorials.tutorials.get(itemIdOfTutToCopy);
+                            if(itemTutorials.containsKey(tutToCopyParts[1])){
+                                tut = itemTutorials.get(tutToCopyParts[1]);
+                            }
+                            else{
+                                tut.error_message = "Item does not have tutorial: " + tutToCopyParts[1];
+                                Tutorials.LOGGER.error(tut.error_message);
+                            }
+                        }
+                        else{
+                            tut.error_message = "No tutorials for item: " + itemIdOfTutToCopy;
+                            Tutorials.LOGGER.error(tut.error_message);
+                        }
+                    }
+                    else{
+                        tut.error_message = "Invalid tutorial ID format: '" + tut.copy + "'. Example of valid format: 'minecraft:furnace/hoppers' (Hoppers tutorial for furnace item).";
+                        Tutorials.LOGGER.error(tut.error_message);
+                    }
+
+                    tutorials.put(entry.getKey(), tut);
+                }
+            }
+
             setTutorialOrder();
             //return setTutorial(tutorials.entrySet().iterator().next().getKey());
             return setTutorial(tutorialOrder[0]);
@@ -368,7 +405,16 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         AbstractTutorialObjectInstance obj = scene_objects.get(instruction.object_id);
 
                         obj.show = (instruction.show == null) ? obj.show : instruction.show;
+
                         obj.lerp = (instruction.lerp == null) ? obj.lerp : instruction.lerp;
+                        obj.lerp =
+                                (
+                                        obj.next_instruction == null ||
+                                        tutorial.scene_instructions.get(obj.next_instruction).lerp == null
+                                ) ?
+                                obj.lerp :
+                                tutorial.scene_instructions.get(obj.next_instruction).lerp
+                        ;
 
                         obj.x = (instruction.x == null) ? obj.x : instruction.x;
                         instruction.x = obj.x;
@@ -407,10 +453,28 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     }
                     else if(instruction.object_id != null){
                         tutorial.error_message = "Could not find scene object with id: " + instruction.object_id;
+                        Tutorials.LOGGER.error(tutorial.error_message);
                     }
 
                     tutorial.lerp_fov = (instruction.lerp_fov == null) ? tutorial.lerp_fov : instruction.lerp_fov;
+                    tutorial.lerp_fov =
+                            (
+                                    tutorial.next_fov_instruction == null ||
+                                    tutorial.scene_instructions.get(tutorial.next_fov_instruction).lerp_fov == null
+                            ) ?
+                            tutorial.lerp_fov :
+                            tutorial.scene_instructions.get(tutorial.next_fov_instruction).lerp_fov
+                    ;
+
                     tutorial.lerp_angle = (instruction.lerp_angle == null) ? tutorial.lerp_angle : instruction.lerp_angle;
+                    tutorial.lerp_angle =
+                            (
+                                    tutorial.next_angle_instruction == null ||
+                                    tutorial.scene_instructions.get(tutorial.next_angle_instruction).lerp_angle == null
+                            ) ?
+                            tutorial.lerp_angle :
+                            tutorial.scene_instructions.get(tutorial.next_angle_instruction).lerp_angle
+                    ;
 
                     tutorial.fov = (instruction.fov == null) ? tutorial.fov : instruction.fov;
                     tutorial.angle = (instruction.angle == null) ? tutorial.angle : instruction.angle;
@@ -646,6 +710,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         }
                         else{
                             tutorial.error_message = "'" + block_state_string + "' was invalid for '" + sceneItemEntry.getKey() + "'";
+                            Tutorials.LOGGER.error(tutorial.error_message);
                         }
                     }
                     else {
@@ -786,8 +851,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         int related_c = 0;
         for (String related_item : tutorial.related_items) {
-            if(related_c < 7) {
-                ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(new Identifier(related_item)));
+            Identifier id = new Identifier(related_item);
+            if(related_c < 7 && !Objects.equals(tutorialItem.toString(), id.toString())) {
+                ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(id));
                 //MinecraftClient.getInstance().getItemRenderer().renderInGuiWithOverrides(related_item_item_stack, 256 + 2 + (related_c * 18), 190, 0, 0);
                 int rx = withMinusBgWidth + 256 + 2 + (related_c * 18);
                 int ry = heightMinusBgHeight + 190;
@@ -804,7 +870,10 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         if(tutorial != null){
             textRenderer.draw(matrices, tutorial.display_name, (float)this.titleX, (float)this.titleY, 0x404040);
             if(tutorial.error_message != null && !tutorial.error_message.equals("")){
-                textRenderer.draw(matrices, tutorial.error_message, 30, 30, 0xFF4040);//TODO - wrap text
+                String[] errorParts = tutorial.error_message.split("(?<=\\G.....................................)");
+                for(int i = 0; i < errorParts.length; i++) {
+                    textRenderer.draw(matrices, errorParts[i], 30, 30 + (i * 15), 0xFF4040);//TODO - wrap text
+                }
             }
         }
         else{
@@ -817,8 +886,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         int related_c = 0;
         for (String related_item : tutorial.related_items) {
-            if(related_c < 7) {
-                ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(new Identifier(related_item)));
+            Identifier id = new Identifier(related_item);
+            if(related_c < 7 && !Objects.equals(tutorialItem.toString(), id.toString())) {
+                ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(id));
                 MinecraftClient.getInstance().getItemRenderer().renderInGuiWithOverrides(related_item_item_stack, 256 + 2 + (related_c * 18), 190, 0, 0);
                 related_c++;
             }

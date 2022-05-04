@@ -30,4 +30,6 @@ public class Tutorial {
 
     public Integer last_angle_instruction = null;
     public Integer next_angle_instruction = null;
+
+    public String copy = null;
 }
