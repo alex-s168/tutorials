@@ -189,10 +189,15 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             int lastTime = 0;
             for (TutorialInstruction entry : tutorial.scene_instructions) {
-                if(entry.relative_time != null){
-                    entry.time = lastTime + entry.relative_time;
+                if(entry == null){
+                    tutorial.error_message = "There is a 'null' instruction in the tutorial. Check for an extra comma at the end of the instruction list";
+                    TutorialsClient.LOGGER.error(tutorial.error_message);
+                }else {
+                    if (entry.relative_time != null) {
+                        entry.time = lastTime + entry.relative_time;
+                    }
+                    lastTime = entry.time;
                 }
-                lastTime = entry.time;
             }
 
             tutorial.endTime = lastTime;
@@ -303,12 +308,13 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         matrices.translate(-0f, -2f, -10f);
 
+        matrices.translate(-tutorial.camera_x, -tutorial.camera_y, -tutorial.camera_z);
+
         float sceneRotation = tutorial.force_angle ? tutorial.angle : (((float)mouseX / realWidth * 1000) + 90 + 45);
         matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(sceneRotation));
+        matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(tutorial.vertical_angle));
 
         VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
-
-        //MinecraftClient.getInstance().getItemRenderer().renderItem(new ItemStack(Items.STONE), ModelTransformation.Mode.NONE, 255, OverlayTexture.DEFAULT_UV, matrices, immediate, 0);
 
         if(tutorial != null) {
 
@@ -377,7 +383,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                                 instruction.time <= playbackTime &&
                                 (
                                         sceneItem.last_instruction == null ||
-                                        tutorial.scene_instructions.get(sceneItem.last_instruction).time > instruction.time
+                                        tutorial.scene_instructions.get(sceneItem.last_instruction).time < instruction.time
                                 )
                         ){
                             sceneItem.last_instruction = i;
@@ -387,7 +393,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                                 instruction.time > playbackTime &&
                                 (
                                         sceneItem.next_instruction == null ||
-                                        tutorial.scene_instructions.get(sceneItem.next_instruction).time < instruction.time
+                                        tutorial.scene_instructions.get(sceneItem.next_instruction).time > instruction.time
                                 )
                         ){
                             sceneItem.next_instruction = i;
@@ -601,12 +607,14 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
                     matrices.scale(0.25f * sceneItem.scale_x, 0.25f * sceneItem.scale_y, 0.25f * sceneItem.scale_z);
 
+                    matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(180));
+
                     if(sceneItemEntry.getValue().three_d_sprite) {
                         matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(-sceneItem.rotation_x));
                         matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(-sceneItem.rotation_y));
                         matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(-sceneItem.rotation_z));
 
-                        matrices.translate(sceneItem.texture_crop_x /2f, -sceneItem.texture_crop_y /2f, 0f);
+                        matrices.translate(sceneItem.texture_crop_x / 2f, -sceneItem.texture_crop_y / 2f, 0f);
 
                         matrices.translate(-sceneItem.texture_crop_x, 0f, 0f);
                         DrawableHelper.drawTexture(
@@ -614,8 +622,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                                 0,//x
                                 0,//y
                                 0,//z
-                                0,//u
-                                0,//v
+                                sceneItem.texture_u,//u
+                                sceneItem.texture_v,//v
                                 sceneItem.texture_crop_x,//w
                                 sceneItem.texture_crop_y,//h
                                 sceneItem.texture_width,//tw
@@ -628,8 +636,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                                 0,//x
                                 0,//y
                                 0,//z
-                                0,//u
-                                0,//v
+                                sceneItem.texture_u,//u
+                                sceneItem.texture_v,//v
                                 sceneItem.texture_crop_x,//w
                                 sceneItem.texture_crop_y,//h
                                 sceneItem.texture_width,//tw
@@ -637,30 +645,32 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         );
                         matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(180f));
 
-                        matrices.translate(-sceneItem.texture_crop_x /2f, sceneItem.texture_crop_y /2f, 0f);
+                        matrices.translate(-sceneItem.texture_crop_x / 2f, sceneItem.texture_crop_y / 2f, 0f);
 
                         matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(sceneItem.rotation_z));
                         matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(sceneItem.rotation_y));
                         matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(sceneItem.rotation_x));
                     }
                     else{
-                        matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(-sceneRotation + 180f));
-                        matrices.translate(-sceneItem.texture_crop_x /2f, -sceneItem.texture_crop_y /2f, 0f);
+                        matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(sceneRotation + 180f));
+                        matrices.translate(-sceneItem.texture_crop_x / 2f, -sceneItem.texture_crop_y / 2f, 0f);
                         DrawableHelper.drawTexture(
                                 matrices,
                                 0,//x
                                 0,//y
                                 0,//z
-                                0,//u
-                                0,//v
+                                sceneItem.texture_u,//u
+                                sceneItem.texture_v,//v
                                 sceneItem.texture_crop_x,//w
                                 sceneItem.texture_crop_y,//h
                                 sceneItem.texture_width,//tw
                                 sceneItem.texture_height//th
                         );
-                        matrices.translate(sceneItem.texture_crop_x /2f, sceneItem.texture_crop_y /2f, 0f);
-                        matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(+sceneRotation - 180f));
+                        matrices.translate(sceneItem.texture_crop_x / 2f, sceneItem.texture_crop_y / 2f, 0f);
+                        matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(-sceneRotation - 180f));
                     }
+
+                    matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(180));
 
                     matrices.scale(4f / sceneItem.scale_x, 4f / sceneItem.scale_y, 4f / sceneItem.scale_z);
 
@@ -742,8 +752,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     Matrix4f matrix4fText = matrices.peek().getPositionMatrix();
                     matrices.translate(sceneItemEntryValue.x, sceneItemEntryValue.y, sceneItemEntryValue.z);
                     matrices.scale(-0.04f, -0.04f, 0.04f);
-
-
 
                     if(sceneItemEntryValue.three_d_sprite){
                         matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(sceneItemEntryValue.rotation_x));

@@ -104,11 +104,7 @@ public class TutorialsClient implements ClientModInitializer {
             }
 
             while (keyBinding.wasPressed()) {
-                try {
-                    onTutorialKey();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+                onTutorialKey();
             }
         });
     }
