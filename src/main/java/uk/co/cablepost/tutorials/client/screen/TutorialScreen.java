@@ -17,7 +17,6 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.resource.Resource;
-import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
@@ -25,8 +24,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
-import org.apache.commons.lang3.SerializationUtils;
 import uk.co.cablepost.tutorials.*;
+import uk.co.cablepost.tutorials.client.TutorialsClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,9 +35,9 @@ import java.util.Objects;
 
 public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
-    public static final Identifier BACKGROUND_TEXTURE = new Identifier(Tutorials.MOD_ID, "textures/gui/tutorials/tutorial.png");
-    public static final Identifier BACKGROUND_TEXTURE_TUT_COMPLETE = new Identifier(Tutorials.MOD_ID, "textures/gui/tutorials/tutorial_complete.png");
-    public static final Identifier BUTTONS_TEXTURE = new Identifier(Tutorials.MOD_ID, "textures/gui/tutorials/tutorial_buttons.png");
+    public static final Identifier BACKGROUND_TEXTURE = new Identifier(TutorialsClient.MOD_ID, "textures/gui/tutorials/tutorial.png");
+    public static final Identifier BACKGROUND_TEXTURE_TUT_COMPLETE = new Identifier(TutorialsClient.MOD_ID, "textures/gui/tutorials/tutorial_complete.png");
+    public static final Identifier BUTTONS_TEXTURE = new Identifier(TutorialsClient.MOD_ID, "textures/gui/tutorials/tutorial_buttons.png");
 
     private String[] tutorialOrder = null;
     private Map<String, Tutorial> tutorials = null;
@@ -76,7 +75,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     private void addSceneObject(String key, AbstractTutorialObjectInstance obj) {
         if(scene_objects.containsKey(key)){
             tutorial.error_message = "Scene object '" + key + "' already exists or a scene object is trying to be an item and a texture";
-            Tutorials.LOGGER.error(tutorial.error_message);
+            TutorialsClient.LOGGER.error(tutorial.error_message);
             return;
         }
 
@@ -112,7 +111,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 obj.texture_v = 0;
             } catch (IOException e){
                 tutorial.error_message = "Failed to load tutorial texture: " + e;
-                Tutorials.LOGGER.error(tutorial.error_message);
+                TutorialsClient.LOGGER.error(tutorial.error_message);
             }
         }
 
@@ -120,9 +119,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     }
 
     public boolean setTutorials(Identifier identifier) {
-        if(Tutorials.tutorials.containsKey(identifier)) {
+        if(TutorialsClient.tutorials.containsKey(identifier)) {
             tutorialItem = identifier;
-            tutorials = Tutorials.tutorials.get(identifier);
+            tutorials = TutorialsClient.tutorials.get(identifier);
 
             for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
                 Tutorial tut = entry.getValue();
@@ -130,24 +129,24 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     String[] tutToCopyParts = tut.copy.split("/");
                     if(tutToCopyParts.length == 2){
                         Identifier itemIdOfTutToCopy = new Identifier(tutToCopyParts[0]);
-                        if(Tutorials.tutorials.containsKey(itemIdOfTutToCopy)){
-                            Map<String, Tutorial> itemTutorials = Tutorials.tutorials.get(itemIdOfTutToCopy);
+                        if(TutorialsClient.tutorials.containsKey(itemIdOfTutToCopy)){
+                            Map<String, Tutorial> itemTutorials = TutorialsClient.tutorials.get(itemIdOfTutToCopy);
                             if(itemTutorials.containsKey(tutToCopyParts[1])){
                                 tut = itemTutorials.get(tutToCopyParts[1]);
                             }
                             else{
                                 tut.error_message = "Item does not have tutorial: " + tutToCopyParts[1];
-                                Tutorials.LOGGER.error(tut.error_message);
+                                TutorialsClient.LOGGER.error(tut.error_message);
                             }
                         }
                         else{
                             tut.error_message = "No tutorials for item: " + itemIdOfTutToCopy;
-                            Tutorials.LOGGER.error(tut.error_message);
+                            TutorialsClient.LOGGER.error(tut.error_message);
                         }
                     }
                     else{
                         tut.error_message = "Invalid tutorial ID format: '" + tut.copy + "'. Example of valid format: 'minecraft:furnace/hoppers' (Hoppers tutorial for furnace item).";
-                        Tutorials.LOGGER.error(tut.error_message);
+                        TutorialsClient.LOGGER.error(tut.error_message);
                     }
 
                     tutorials.put(entry.getKey(), tut);
@@ -453,7 +452,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     }
                     else if(instruction.object_id != null){
                         tutorial.error_message = "Could not find scene object with id: " + instruction.object_id;
-                        Tutorials.LOGGER.error(tutorial.error_message);
+                        TutorialsClient.LOGGER.error(tutorial.error_message);
                     }
 
                     tutorial.lerp_fov = (instruction.lerp_fov == null) ? tutorial.lerp_fov : instruction.lerp_fov;
@@ -710,7 +709,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         }
                         else{
                             tutorial.error_message = "'" + block_state_string + "' was invalid for '" + sceneItemEntry.getKey() + "'";
-                            Tutorials.LOGGER.error(tutorial.error_message);
+                            TutorialsClient.LOGGER.error(tutorial.error_message);
                         }
                     }
                     else {

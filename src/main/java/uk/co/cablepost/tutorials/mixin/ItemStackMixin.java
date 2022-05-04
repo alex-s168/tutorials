@@ -16,7 +16,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import uk.co.cablepost.tutorials.Tutorials;
 import uk.co.cablepost.tutorials.client.TutorialsClient;
 
 import java.util.List;
@@ -42,7 +41,7 @@ public abstract class ItemStackMixin {
         TutorialsClient.timeSinceMouseOverItem = 0;
 
         Identifier id = Registry.ITEM.getId(getItem());
-        if(!Tutorials.tutorials.containsKey(id)){
+        if(!TutorialsClient.tutorials.containsKey(id)){
             return;
         }
 

@@ -17,9 +17,6 @@
   "entrypoints": {
     "client": [
       "uk.co.cablepost.tutorials.client.TutorialsClient"
-    ],
-    "main": [
-      "uk.co.cablepost.tutorials.Tutorials"
     ]
   },
   "mixins": [
