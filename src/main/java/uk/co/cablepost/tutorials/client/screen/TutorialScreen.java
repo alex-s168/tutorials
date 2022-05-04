@@ -51,6 +51,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     public boolean playing = true;
     public int playbackSpeed = 1;
 
+    public int firstPlaybackFrames = 0;
+
     private final Map<String, AbstractTutorialObjectInstance> scene_objects = new HashMap<>();
 
     public TutorialScreen(PlayerInventory inventory, Text title) {
@@ -180,6 +182,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     public boolean setTutorial(String tut) {
         playbackSpeed = 1;
         playbackTime = -1000f;
+        firstPlaybackFrames = 0;
         tutorial = null;
 
         if(tutorials.containsKey(tut)) {
@@ -187,11 +190,21 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             scene_objects.clear();
 
+            AbstractTutorialObjectInstance camera = new AbstractTutorialObjectInstance();
+            addSceneObject("camera", camera);
+            camera.fov = 66f;
+            camera.x = 0f;
+            camera.y = 2f;
+            camera.z = 10f;
+
             int lastTime = 0;
             for (TutorialInstruction entry : tutorial.scene_instructions) {
                 if(entry == null){
                     tutorial.error_message = "There is a 'null' instruction in the tutorial. Check for an extra comma at the end of the instruction list";
-                    TutorialsClient.LOGGER.error(tutorial.error_message);
+                    TutorialsClient.LOGGER.warn(tutorial.error_message);
+                    entry = new TutorialInstruction();
+                    entry.relative_time = 0;//dud value so doesn't break
+                    entry.object_id = "camera";//dud value so doesn't break
                 }else {
                     if (entry.relative_time != null) {
                         entry.time = lastTime + entry.relative_time;
@@ -203,7 +216,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             tutorial.endTime = lastTime;
 
             for (Map.Entry<String, TutorialObject> entry : tutorial.scene_objects.entrySet()) {
-
                 if(entry.getValue().item_name != null){
                     //Item
                     TutorialItemObjectInstance x = new TutorialItemObjectInstance();
@@ -245,6 +257,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
         if(tutorial != null && playing) {
             playbackTime += delta * (float)playbackSpeed;
+            if(firstPlaybackFrames < 100){
+                firstPlaybackFrames++;
+            }
         }
 
         DiffuseLighting.disableGuiDepthLighting();
@@ -291,11 +306,13 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         int realWidth = this.client.getWindow().getFramebufferWidth();
         int realHeight = this.client.getWindow().getFramebufferHeight();
 
+        AbstractTutorialObjectInstance camera = scene_objects.get("camera");
+
         //RenderSystem.viewport((this.width - backgroundWidth) / 2 * scaleFactor, (this.height - backgroundHeight) / 2 * scaleFactor, 256 * scaleFactor, backgroundHeight * scaleFactor);
         RenderSystem.viewport(((this.width - backgroundWidth) / 2 + 15) * scaleFactor, ((this.height - backgroundHeight) / 2 + 15) * scaleFactor, (256 - 30) * scaleFactor, (backgroundHeight - 30) * scaleFactor);
         Matrix4f matrix4f = Matrix4f.translate(0f, -0.25f, -1f);
         //matrix4f.multiply(Matrix4f.viewboxMatrix(66.0f, (float)backgroundHeight / 256f, 0.01f, 1000.0f));
-        matrix4f.multiply(Matrix4f.viewboxMatrix(tutorial.fov, ((float)backgroundHeight - 30f) / (256f - 30f), 0.01f, 1000.0f));
+        matrix4f.multiply(Matrix4f.viewboxMatrix(camera.fov, ((float)backgroundHeight - 30f) / (256f - 30f), 0.01f, 1000.0f));
         RenderSystem.backupProjectionMatrix();
         RenderSystem.setProjectionMatrix(matrix4f);
         matrices.push();
@@ -303,74 +320,20 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         entry.getPositionMatrix().loadIdentity();
         entry.getNormalMatrix().loadIdentity();
 
-        matrices.translate(0.0, 0.0f, 1999.84f);
+        if(firstPlaybackFrames > 25) {//hides the scene from rending till ready
+            matrices.translate(0.0, 0.0f, 1999.84f);
+        }
         matrices.scale(0.2f, 0.24f, 0.2f);
 
-        matrices.translate(-0f, -2f, -10f);
+        matrices.translate(-camera.x, -camera.y, -camera.z);
 
-        matrices.translate(-tutorial.camera_x, -tutorial.camera_y, -tutorial.camera_z);
-
-        float sceneRotation = tutorial.force_angle ? tutorial.angle : (((float)mouseX / realWidth * 1000) + 90 + 45);
+        float sceneRotation = camera.rotation_y;//;tutorial.force_angle ? tutorial.angle : (((float)mouseX / realWidth * 1000) + 90 + 45);
         matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(sceneRotation));
-        matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(tutorial.vertical_angle));
+        matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(camera.rotation_x));
 
         VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
 
         if(tutorial != null) {
-
-            tutorial.last_fov_instruction = null;
-            tutorial.next_fov_instruction = null;
-            tutorial.last_angle_instruction = null;
-            tutorial.next_angle_instruction = null;
-
-            for (int i = 0; i < tutorial.scene_instructions.size(); i++) {
-                TutorialInstruction instruction = tutorial.scene_instructions.get(i);
-
-                if(instruction.fov != null){
-                    if(
-                            instruction.time <= playbackTime &&
-                            (
-                                    tutorial.last_fov_instruction == null ||
-                                    tutorial.scene_instructions.get(tutorial.last_fov_instruction).time > instruction.time
-                            )
-                    ){
-                        tutorial.last_fov_instruction = i;
-                    }
-
-                    if(
-                            instruction.time > playbackTime &&
-                            (
-                                    tutorial.next_fov_instruction == null ||
-                                    tutorial.scene_instructions.get(tutorial.next_fov_instruction).time < instruction.time
-                            )
-                    ){
-                        tutorial.next_fov_instruction = i;
-                    }
-                }
-
-                if(instruction.angle != null){
-                    if(
-                            instruction.time <= playbackTime &&
-                                    (
-                                            tutorial.last_angle_instruction == null ||
-                                                    tutorial.scene_instructions.get(tutorial.last_angle_instruction).time > instruction.time
-                                    )
-                    ){
-                        tutorial.last_angle_instruction = i;
-                    }
-
-                    if(
-                            instruction.time > playbackTime &&
-                                    (
-                                            tutorial.next_angle_instruction == null ||
-                                                    tutorial.scene_instructions.get(tutorial.next_angle_instruction).time < instruction.time
-                                    )
-                    ){
-                        tutorial.next_angle_instruction = i;
-                    }
-                }
-            }
-
             for (Map.Entry<String, AbstractTutorialObjectInstance> sceneItemEntry : scene_objects.entrySet()) {
                 AbstractTutorialObjectInstance sceneItem = sceneItemEntry.getValue();
                 sceneItem.last_instruction = null;
@@ -444,6 +407,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         obj.scale_z = (instruction.scale_z == null) ? obj.scale_z : instruction.scale_z;
                         instruction.scale_z = obj.scale_z;
 
+                        obj.fov = (instruction.fov == null) ? obj.fov : instruction.fov;
+                        instruction.fov = obj.fov;
+
                         obj.text = (instruction.text == null) ? obj.text : instruction.text;
                         obj.three_d_sprite = (instruction.three_d_sprite == null) ? obj.three_d_sprite : instruction.three_d_sprite;
 
@@ -460,59 +426,10 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         tutorial.error_message = "Could not find scene object with id: " + instruction.object_id;
                         TutorialsClient.LOGGER.error(tutorial.error_message);
                     }
-
-                    tutorial.lerp_fov = (instruction.lerp_fov == null) ? tutorial.lerp_fov : instruction.lerp_fov;
-                    tutorial.lerp_fov =
-                            (
-                                    tutorial.next_fov_instruction == null ||
-                                    tutorial.scene_instructions.get(tutorial.next_fov_instruction).lerp_fov == null
-                            ) ?
-                            tutorial.lerp_fov :
-                            tutorial.scene_instructions.get(tutorial.next_fov_instruction).lerp_fov
-                    ;
-
-                    tutorial.lerp_angle = (instruction.lerp_angle == null) ? tutorial.lerp_angle : instruction.lerp_angle;
-                    tutorial.lerp_angle =
-                            (
-                                    tutorial.next_angle_instruction == null ||
-                                    tutorial.scene_instructions.get(tutorial.next_angle_instruction).lerp_angle == null
-                            ) ?
-                            tutorial.lerp_angle :
-                            tutorial.scene_instructions.get(tutorial.next_angle_instruction).lerp_angle
-                    ;
-
-                    tutorial.fov = (instruction.fov == null) ? tutorial.fov : instruction.fov;
-                    tutorial.angle = (instruction.angle == null) ? tutorial.angle : instruction.angle;
-                    tutorial.force_angle = (instruction.force_angle == null) ? tutorial.force_angle : instruction.force_angle;
                 }
             }
 
-            if(tutorial.lerp_fov && tutorial.last_fov_instruction != null && tutorial.next_fov_instruction != null){
-                TutorialInstruction last_instruction = tutorial.scene_instructions.get(tutorial.last_fov_instruction);
-                TutorialInstruction next_instruction = tutorial.scene_instructions.get(tutorial.next_fov_instruction);
-                float timeProg01 = (playbackTime - last_instruction.time) / (next_instruction.time - last_instruction.time);
-
-                tutorial.fov = lerp(
-                        last_instruction.fov,
-                        next_instruction.fov,
-                        timeProg01
-                );
-            }
-
-            if(tutorial.lerp_angle && tutorial.last_angle_instruction != null && tutorial.next_angle_instruction != null){
-                TutorialInstruction last_instruction = tutorial.scene_instructions.get(tutorial.last_angle_instruction);
-                TutorialInstruction next_instruction = tutorial.scene_instructions.get(tutorial.next_angle_instruction);
-                float timeProg01 = (playbackTime - last_instruction.time) / (next_instruction.time - last_instruction.time);
-
-                tutorial.angle = lerp(
-                        last_instruction.angle,
-                        next_instruction.angle,
-                        timeProg01
-                );
-            }
-
             for (Map.Entry<String, AbstractTutorialObjectInstance> sceneItemEntry : scene_objects.entrySet()) {
-
                 AbstractTutorialObjectInstance sceneItemEntryValue = sceneItemEntry.getValue();
 
                 if(sceneItemEntryValue.lerp && sceneItemEntryValue.last_instruction != null && sceneItemEntryValue.next_instruction != null){
@@ -590,6 +507,14 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         sceneItemEntryValue.scale_z = lerp(
                                 last_instruction.scale_z,
                                 next_instruction.scale_z,
+                                timeProg01
+                        );
+                    }
+
+                    if(next_instruction.fov != null) {
+                        sceneItemEntryValue.fov = lerp(
+                                last_instruction.fov,
+                                next_instruction.fov,
                                 timeProg01
                         );
                     }
@@ -679,6 +604,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             }
 
             for (Map.Entry<String, AbstractTutorialObjectInstance> sceneItemEntry : scene_objects.entrySet()) {
+                if(Objects.equals(sceneItemEntry.getKey(), "camera")){
+                    continue;
+                }
 
                 AbstractTutorialObjectInstance sceneItemEntryValue = sceneItemEntry.getValue();
 

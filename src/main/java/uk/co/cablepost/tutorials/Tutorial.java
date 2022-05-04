@@ -16,25 +16,5 @@ public class Tutorial {
 
     public String error_message = "";
 
-    public Float fov = 66.0f;
-
-    public Boolean lerp_fov = false;
-
-    public Integer last_fov_instruction = null;
-    public Integer next_fov_instruction = null;
-
-    public Boolean force_angle = false;
-    public Float angle = 0f;
-
-    public Float vertical_angle = 0f;
-    public Float camera_x = 0f;
-    public Float camera_y = 0f;
-    public Float camera_z = 0f;
-
-    public Boolean lerp_angle = false;
-
-    public Integer last_angle_instruction = null;
-    public Integer next_angle_instruction = null;
-
     public String copy = null;
 }

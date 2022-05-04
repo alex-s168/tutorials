@@ -35,4 +35,6 @@ public class AbstractTutorialObjectInstance {
 
     public Integer last_instruction = null;
     public Integer next_instruction = null;
+
+    public Float fov = 66f;
 }
