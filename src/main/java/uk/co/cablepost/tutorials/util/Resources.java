@@ -62,7 +62,7 @@ public class Resources {
         return new Identifier(id.getNamespace(), map.apply(id.getPath()));
     }
 
-    public static Identifier[] getAlternatives(Identifier id) {
+    public static Identifier[] getTextureAlternatives(Identifier id) {
         String namespace = id.getNamespace();
         String path = id.getPath();
 

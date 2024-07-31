@@ -1,9 +1,8 @@
 package uk.co.cablepost.tutorials;
 
+import uk.co.cablepost.tutorials.rend.EmptyRender;
+
 public class TutorialObject {
-    public String item_resloc;
-
-    public Boolean as_block;
-
-    public String texture_resloc;
+    public TutorialObjectRender renderer = new EmptyRender();
+    public Interpolator interpolator = Interpolator.byName("snap");
 }

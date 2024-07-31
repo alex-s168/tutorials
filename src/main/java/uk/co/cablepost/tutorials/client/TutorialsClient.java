@@ -22,11 +22,13 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.co.cablepost.tutorials.Tutorial;
+import uk.co.cablepost.tutorials.*;
 import uk.co.cablepost.tutorials.client.screen.TutorialScreen;
+import uk.co.cablepost.tutorials.rend.*;
 import uk.co.cablepost.tutorials.util.Resources;
 
 import java.io.InputStream;
@@ -42,7 +44,8 @@ public class TutorialsClient implements ClientModInitializer {
     public static final String MOD_ID = "tutorials";
 
     public static Map<Identifier, Tutorial> tutorials = new HashMap<>();
-    public static Map<Identifier, List<Tutorial>> tutorialsByItems = new HashMap<>();
+    public static Map<Identifier, List<Tutorial.Parsed>> tutorialsByItems = new HashMap<>();
+    public static Map<Identifier, TutorialObjectRenderKind> tutorialRenderers = new HashMap<>();
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
@@ -51,13 +54,47 @@ public class TutorialsClient implements ClientModInitializer {
     public static int timeSinceMouseOverItem;
     public static int timeSinceMouseTextInputFocus;
 
+    @Nullable
+    public static ResourceManager lastResourceManager = null;
+
     @Override
     public void onInitializeClient() {
+        tutorialRenderers.put(
+                new Identifier("tutorials", "block"),
+                new BlockTutorialObjectRender.Src()
+        );
+
+        tutorialRenderers.put(
+                new Identifier("tutorials", "item"),
+                new ItemTutorialObjectRender.Src()
+        );
+
+        tutorialRenderers.put(
+                new Identifier("tutorials", "text"),
+                new TextTutorialObjectRender.Src()
+        );
+
+        tutorialRenderers.put(
+                new Identifier("tutorials", "texture"),
+                new TextureTutorialObjectRender.Src()
+        );
+
+        tutorialRenderers.put(
+                new Identifier("tutorials", "empty"),
+                new EmptyRender.Src()
+        );
+
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new SimpleSynchronousResourceReloadListener() {
                     @Override
                     public void reload(ResourceManager manager) {
-                        Gson GSON = new GsonBuilder().create();
+                        lastResourceManager = manager;
+
+                        Gson GSON = new GsonBuilder()
+                                .registerTypeAdapter(TutorialObject.class, new TutorialObjectDeserializer())
+                                .registerTypeAdapter(TutorialInstruction.class, new TutorialInstruction.Deserializer())
+                                .create();
+
                         tutorials.clear();
                         tutorialsByItems.clear();
 
@@ -74,9 +111,9 @@ public class TutorialsClient implements ClientModInitializer {
 
                                 for (String item : tut.show_for_items) {
                                     Identifier itemId = new Identifier(item);
-                                    List<Tutorial> itemTuts = tutorialsByItems.computeIfAbsent(itemId, (ignored) ->
+                                    List<Tutorial.Parsed> itemTuts = tutorialsByItems.computeIfAbsent(itemId, (ignored) ->
                                             new ArrayList<>());
-                                    itemTuts.add(tut);
+                                    itemTuts.add(tut.finishParse());
                                 }
                             } catch (Exception e) {
                                 String msg = "Error while loading tutorial '" + id.getPath() + "': " + e;
@@ -88,6 +125,8 @@ public class TutorialsClient implements ClientModInitializer {
 
                             tutorials.put(identifier, tut);
                         }
+
+                        lastResourceManager = null;
                     }
 
                     @Override
