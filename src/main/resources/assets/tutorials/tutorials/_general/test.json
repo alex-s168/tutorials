@@ -2,14 +2,12 @@
   "display_name": "Test",
   "scene_objects": {
     "sand1": {
-        "item_mod_name": "minecraft",
-        "item_name": "sand"
+        "item_resloc": "minecraft:sand"
     },
     "bruh": {
     },
     "sprite1": {
-      "texture_mod_name": "tutorials",
-      "texture_path": "textures/gui/tutorials/assets/water.png"
+      "texture_resloc": "tutorials:tutorials/water"
     }
   },
   "scene_instructions": [

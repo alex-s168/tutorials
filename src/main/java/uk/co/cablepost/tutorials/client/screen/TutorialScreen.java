@@ -26,6 +26,8 @@ import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import uk.co.cablepost.tutorials.*;
 import uk.co.cablepost.tutorials.client.TutorialsClient;
+import uk.co.cablepost.tutorials.util.Parse;
+import uk.co.cablepost.tutorials.util.Resources;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -102,7 +104,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         if(obj instanceof TutorialTextureObjectInstance t_obj) {
             assert client != null;
             try {
-                Resource resource = client.getResourceManager().getResource(t_obj.identifier);
+                Resource resource = Resources.loadAlternatives(t_obj.alternativeIdentifiers, client.getResourceManager());
                 NativeImage nativeImage = NativeImage.read(resource.getInputStream());
 
                 obj.texture_width = nativeImage.getWidth();
@@ -111,7 +113,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 obj.texture_crop_y = obj.texture_height;
                 obj.texture_u = 0;
                 obj.texture_v = 0;
-            } catch (IOException e){
+            } catch (Exception e){
                 tutorial.error_message = "Failed to load tutorial texture: " + e;
                 TutorialsClient.LOGGER.error(tutorial.error_message);
             }
@@ -157,7 +159,17 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             setTutorialOrder();
             //return setTutorial(tutorials.entrySet().iterator().next().getKey());
-            return setTutorial(tutorialOrder[0]);
+
+            try {
+                return setTutorial(tutorialOrder[0]);
+            } catch (Exception e) {
+                if (tutorial == null) {
+                    tutorial = new Tutorial();
+                    tutorial.display_name = "Tutorial that failed to load :(";
+                }
+                tutorial.error_message = "Error loading tutorial: " + e;
+            }
+            return true;
         }
         return false;
     }
@@ -179,7 +191,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         }
     }
 
-    public boolean setTutorial(String tut) {
+    public boolean setTutorial(String tut)
+    throws Exception {
         playbackSpeed = 1;
         playbackTime = -1000f;
         firstPlaybackFrames = 0;
@@ -216,26 +229,28 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             tutorial.endTime = lastTime;
 
             for (Map.Entry<String, TutorialObject> entry : tutorial.scene_objects.entrySet()) {
-                if(entry.getValue().item_name != null){
+                if (entry.getValue().item_resloc != null){
                     //Item
                     TutorialItemObjectInstance x = new TutorialItemObjectInstance();
-                    x.itemStack = new ItemStack(Registry.ITEM.get(new Identifier(entry.getValue().item_mod_name, entry.getValue().item_name)));
+                    String[] resloc = Parse.resourceLocation(entry.getValue().item_resloc);
+                    x.itemStack = new ItemStack(Registry.ITEM.get(new Identifier(resloc[0], resloc[1])));
                     x.asBlock = entry.getValue().as_block != null ? entry.getValue().as_block : false;
-                    x.namespace = entry.getValue().item_mod_name;
-                    x.path = entry.getValue().item_name;
+                    x.namespace = resloc[0];
+                    x.path = resloc[1];
                     addSceneObject(entry.getKey(), x);
                 }
 
-                if(entry.getValue().texture_path != null){
+                if (entry.getValue().texture_resloc != null){
                     //Texture
                     TutorialTextureObjectInstance x = new TutorialTextureObjectInstance();
-                    x.identifier = new Identifier(entry.getValue().texture_mod_name, entry.getValue().texture_path);
-                    x.namespace = entry.getValue().texture_mod_name;
-                    x.path = entry.getValue().texture_path;
+                    String[] resloc = Parse.resourceLocation(entry.getValue().texture_resloc);
+                    x.alternativeIdentifiers = Resources.getAlternatives(new Identifier(resloc[0], resloc[1]));
+                    x.namespace = resloc[0];
+                    x.path = resloc[1];
                     addSceneObject(entry.getKey(), x);
                 }
 
-                if(entry.getValue().item_name == null && entry.getValue().texture_path == null){
+                if (entry.getValue().item_resloc == null && entry.getValue().texture_resloc == null){
                     //Just text
                     AbstractTutorialObjectInstance x = new AbstractTutorialObjectInstance();
                     addSceneObject(entry.getKey(), x);
@@ -526,7 +541,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                         continue;
                     }
 
-                    RenderSystem.setShaderTexture(0, sceneItem.identifier);
+                    Identifier identifier = Resources.selectAlternatives(sceneItem.alternativeIdentifiers, client.getResourceManager());
+                    RenderSystem.setShaderTexture(0, identifier);
 
                     matrices.translate(sceneItem.x, sceneItem.y, sceneItem.z);
 
@@ -892,7 +908,15 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                                 for (String s : tutorialOrder) {
                                     Tutorial tut = tutorials.get(s);
                                     if (Objects.equals(tut.display_name, tutorial.display_name)) {
-                                        setTutorial(s);
+                                        try {
+                                            setTutorial(s);
+                                        } catch (Exception e) {
+                                            if (tutorial == null) {
+                                                tutorial = new Tutorial();
+                                                tutorial.display_name = "Tutorial that failed to load :(";
+                                            }
+                                            tutorial.error_message = "Error loading tutorial: " + e;
+                                        }
                                     }
                                 }
                                 client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
