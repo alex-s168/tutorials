@@ -16,9 +16,9 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.resource.ResourceManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-import uk.co.cablepost.tutorials.KeyframeData;
-import uk.co.cablepost.tutorials.TutorialObjectRender;
-import uk.co.cablepost.tutorials.TutorialObjectRenderKind;
+import me.alex_s168.tutorials.api.KeyframeData;
+import me.alex_s168.tutorials.api.TutorialObjectRender;
+import me.alex_s168.tutorials.api.TutorialObjectRenderKind;
 
 import java.util.Optional;
 

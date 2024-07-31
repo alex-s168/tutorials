@@ -1,4 +1,4 @@
-package uk.co.cablepost.tutorials;
+package me.alex_s168.tutorials.api;
 
 import com.google.gson.*;
 import org.jetbrains.annotations.NotNull;

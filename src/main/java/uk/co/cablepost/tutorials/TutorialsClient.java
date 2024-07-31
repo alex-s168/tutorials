@@ -1,7 +1,6 @@
-package uk.co.cablepost.tutorials.client;
+package uk.co.cablepost.tutorials;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import me.alex_s168.tutorials.api.*;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -22,30 +21,21 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.co.cablepost.tutorials.*;
-import uk.co.cablepost.tutorials.client.screen.TutorialScreen;
+import uk.co.cablepost.tutorials.screen.TutorialScreen;
 import uk.co.cablepost.tutorials.rend.*;
 import uk.co.cablepost.tutorials.util.Resources;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Environment(EnvType.CLIENT)
 public class TutorialsClient implements ClientModInitializer {
 
     public static final String MOD_ID = "tutorials";
-
-    public static Map<Identifier, Tutorial> tutorials = new HashMap<>();
-    public static Map<Identifier, List<Tutorial.Parsed>> tutorialsByItems = new HashMap<>();
-    public static Map<Identifier, TutorialObjectRenderKind> tutorialRenderers = new HashMap<>();
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
@@ -54,79 +44,46 @@ public class TutorialsClient implements ClientModInitializer {
     public static int timeSinceMouseOverItem;
     public static int timeSinceMouseTextInputFocus;
 
-    @Nullable
-    public static ResourceManager lastResourceManager = null;
+    public static ResourceManager lastResourceManager;
+
+    public static void registerRenders(Map<Identifier, TutorialObjectRenderKind> dest) {
+        dest.put(new Identifier("tutorials", "block"),
+                new BlockTutorialObjectRender.Src());
+
+        dest.put(new Identifier("tutorials", "item"),
+                new ItemTutorialObjectRender.Src());
+
+        dest.put(new Identifier("tutorials", "text"),
+                new TextTutorialObjectRender.Src());
+
+        dest.put(new Identifier("tutorials", "texture"),
+                new TextureTutorialObjectRender.Src());
+
+        dest.put(new Identifier("tutorials", "empty"),
+                new EmptyRender.Src());
+    }
 
     @Override
     public void onInitializeClient() {
-        tutorialRenderers.put(
-                new Identifier("tutorials", "block"),
-                new BlockTutorialObjectRender.Src()
-        );
-
-        tutorialRenderers.put(
-                new Identifier("tutorials", "item"),
-                new ItemTutorialObjectRender.Src()
-        );
-
-        tutorialRenderers.put(
-                new Identifier("tutorials", "text"),
-                new TextTutorialObjectRender.Src()
-        );
-
-        tutorialRenderers.put(
-                new Identifier("tutorials", "texture"),
-                new TextureTutorialObjectRender.Src()
-        );
-
-        tutorialRenderers.put(
-                new Identifier("tutorials", "empty"),
-                new EmptyRender.Src()
-        );
-
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new SimpleSynchronousResourceReloadListener() {
                     @Override
                     public void reload(ResourceManager manager) {
-                        lastResourceManager = manager;
+                        TutorialManager.reload(manager, (reg) -> {
+                            for (Identifier id : manager.findResources("tutorials", path -> path.endsWith(".json"))) {
+                                var identifier = Resources.mapPath(id, (p) ->
+                                        Resources.removeSuffix(p, ".json")
+                                                .substring("tutorials/".length()));
 
-                        Gson GSON = new GsonBuilder()
-                                .registerTypeAdapter(TutorialObject.class, new TutorialObjectDeserializer())
-                                .registerTypeAdapter(TutorialInstruction.class, new TutorialInstruction.Deserializer())
-                                .create();
-
-                        tutorials.clear();
-                        tutorialsByItems.clear();
-
-                        for (Identifier id : manager.findResources("tutorials", path -> path.endsWith(".json"))) {
-                            Identifier identifier = Resources.mapPath(id, (p) ->
-                                    Resources.removeSuffix(p, ".json")
-                                            .substring("tutorials/".length()));
-
-                            Tutorial tut;
-
-                            try (InputStream stream = manager.getResource(id).getInputStream()) {
-                                String str = IOUtils.toString(stream, StandardCharsets.UTF_8);
-                                tut = GSON.fromJson(str, Tutorial.class);
-
-                                for (String item : tut.show_for_items) {
-                                    Identifier itemId = new Identifier(item);
-                                    List<Tutorial.Parsed> itemTuts = tutorialsByItems.computeIfAbsent(itemId, (ignored) ->
-                                            new ArrayList<>());
-                                    itemTuts.add(tut.finishParse());
+                                try (InputStream stream = manager.getResource(id).getInputStream()) {
+                                    var str = IOUtils.toString(stream, StandardCharsets.UTF_8);
+                                    reg.register(identifier, str);
+                                } catch (Exception e) {
+                                    String msg = "Error while loading tutorial '" + id.getPath() + "': " + e;
+                                    LOGGER.error(msg);
                                 }
-                            } catch (Exception e) {
-                                String msg = "Error while loading tutorial '" + id.getPath() + "': " + e;
-                                LOGGER.error(msg);
-                                tut = new Tutorial();
-                                tut.display_name = "Tutorial that failed to load :(";
-                                tut.error_message = msg;
                             }
-
-                            tutorials.put(identifier, tut);
-                        }
-
-                        lastResourceManager = null;
+                        });
                     }
 
                     @Override
@@ -160,15 +117,15 @@ public class TutorialsClient implements ClientModInitializer {
     public static void onTutorialKey() {
         MinecraftClient client = MinecraftClient.getInstance();
 
-        if(client.player == null){
+        if (client.player == null){
             return;
         }
 
-        if(timeSinceMouseTextInputFocus < 2){
+        if (timeSinceMouseTextInputFocus < 2){
             return;
         }
 
-        if(client.currentScreen == null){
+        if (client.currentScreen == null){
             ItemStack mainHand = client.player.getStackInHand(Hand.MAIN_HAND);
             if(mainHand != null && !mainHand.isEmpty()){
                 openScreenFor(mainHand.getItem(), client);
@@ -196,12 +153,13 @@ public class TutorialsClient implements ClientModInitializer {
     }
 
     private static void openScreenFor(Item item, MinecraftClient client) {
-        if(client.player == null){
+        if (client.player == null){
             return;
         }
 
         Identifier id = Registry.ITEM.getId(item);
-        if(!TutorialsClient.tutorials.containsKey(id)){
+
+        if (TutorialManager.byItem(id).isEmpty()) {
             client.player.sendMessage(new TranslatableText("tutorials.no_tutorial"), true);
             client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1.0f, 1.0f);
             return;

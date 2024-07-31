@@ -13,10 +13,10 @@ import net.minecraft.util.math.Vec3f;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
-import uk.co.cablepost.tutorials.Interpolator;
-import uk.co.cablepost.tutorials.KeyframeData;
-import uk.co.cablepost.tutorials.TutorialObjectRender;
-import uk.co.cablepost.tutorials.TutorialObjectRenderKind;
+import me.alex_s168.tutorials.api.Interpolator;
+import me.alex_s168.tutorials.api.KeyframeData;
+import me.alex_s168.tutorials.api.TutorialObjectRender;
+import me.alex_s168.tutorials.api.TutorialObjectRenderKind;
 import uk.co.cablepost.tutorials.util.Resources;
 
 import java.util.Optional;

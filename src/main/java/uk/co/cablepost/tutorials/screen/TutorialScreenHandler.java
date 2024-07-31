@@ -1,4 +1,4 @@
-package uk.co.cablepost.tutorials.client.screen;
+package uk.co.cablepost.tutorials.screen;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.screen.ScreenHandler;

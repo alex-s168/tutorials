@@ -1,8 +1,8 @@
-package uk.co.cablepost.tutorials;
+package me.alex_s168.tutorials.api;
 
 import com.google.gson.*;
 import net.minecraft.util.Identifier;
-import uk.co.cablepost.tutorials.client.TutorialsClient;
+import uk.co.cablepost.tutorials.TutorialsClient;
 
 import java.lang.reflect.Type;
 

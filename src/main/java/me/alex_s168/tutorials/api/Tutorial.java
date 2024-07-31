@@ -1,4 +1,4 @@
-package uk.co.cablepost.tutorials;
+package me.alex_s168.tutorials.api;
 
 import uk.co.cablepost.tutorials.util.JsonUtil;
 

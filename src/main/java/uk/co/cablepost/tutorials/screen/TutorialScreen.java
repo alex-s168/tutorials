@@ -1,6 +1,10 @@
-package uk.co.cablepost.tutorials.client.screen;
+package uk.co.cablepost.tutorials.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import me.alex_s168.tutorials.api.Tutorial;
+import me.alex_s168.tutorials.api.TutorialInstruction;
+import me.alex_s168.tutorials.api.TutorialManager;
+import me.alex_s168.tutorials.api.TutorialObject;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.*;
@@ -19,8 +23,7 @@ import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import uk.co.cablepost.tutorials.*;
-import uk.co.cablepost.tutorials.client.TutorialsClient;
+import uk.co.cablepost.tutorials.TutorialsClient;
 import uk.co.cablepost.tutorials.util.ArrUtil;
 
 import java.util.*;
@@ -82,17 +85,13 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     }
 
-    public boolean setTutorials(Identifier identifier) {
-        if (TutorialsClient.tutorialsByItems.containsKey(identifier)) {
-            tutorialItem = identifier;
-            tutorials = TutorialsClient.tutorialsByItems.get(identifier);
+    public void setTutorials(Identifier identifier) {
+        tutorialItem = identifier;
+        tutorials = TutorialManager.byItem(identifier);
 
-            tutorials.sort(Comparator.comparingInt(o -> o.tut().priority));
+        tutorials.sort(Comparator.comparingInt(o -> o.tut().priority));
 
-            setTutorial(tutorials.get(0));
-            return true;
-        }
-        return false;
+        setTutorial(tutorials.get(0));
     }
 
     public void setTutorial(Tutorial.Parsed tut) {
@@ -273,7 +272,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(kf.base.rot[1]));
                     matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(kf.base.rot[2]));
 
-                    obj.renderer.render(TutorialsClient.LOGGER, matrices, immediate, textRenderer, kf.other);
+                    var res = obj.renderer.render(TutorialsClient.LOGGER, matrices, immediate, textRenderer, kf.other);
+                    res.ifPresent(TutorialsClient.LOGGER::error);
 
                     matrices.pop();
                 }

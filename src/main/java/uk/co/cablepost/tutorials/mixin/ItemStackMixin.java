@@ -1,5 +1,6 @@
 package uk.co.cablepost.tutorials.mixin;
 
+import me.alex_s168.tutorials.api.TutorialManager;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -16,7 +17,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import uk.co.cablepost.tutorials.client.TutorialsClient;
+import uk.co.cablepost.tutorials.TutorialsClient;
 
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +42,8 @@ public abstract class ItemStackMixin {
         TutorialsClient.timeSinceMouseOverItem = 0;
 
         Identifier id = Registry.ITEM.getId(getItem());
-        if(!TutorialsClient.tutorials.containsKey(id)){
+
+        if (TutorialManager.byItem(id).isEmpty()) {
             return;
         }
 
