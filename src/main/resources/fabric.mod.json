@@ -5,8 +5,8 @@
   "name": "Tutorials",
   "description": "Add data driven tutorials to Minecraft",
   "authors": [
-    "BillBodkin",
-    "alex_s168"
+    "alex_s168",
+    "BillBodkin"
   ],
   "contact": {
     "repo": "https://github.com/alex-s168/tutorials"

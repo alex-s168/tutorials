@@ -28,6 +28,10 @@ final public class TutorialManager {
     private static Map<Identifier, Tutorial> tutorials = new HashMap<>();
     private static Map<Identifier, List<Tutorial.Parsed>> tutorialsByItems = new HashMap<>();
 
+    public static Optional<TutorialObjectRenderKind> getRender(Identifier name) {
+        return Optional.ofNullable(tutorialRenderers.get(name));
+    }
+
     public static Optional<Tutorial> byName(Identifier tut) {
         return Optional.ofNullable(tutorials.get(tut));
     }

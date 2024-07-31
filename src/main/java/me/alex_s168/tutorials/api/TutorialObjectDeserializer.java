@@ -15,9 +15,8 @@ public class TutorialObjectDeserializer implements JsonDeserializer<TutorialObje
         JsonObject obj = jsonElement.getAsJsonObject();
 
         Identifier rendKindName = new Identifier(obj.get("kind").getAsString());
-        TutorialObjectRenderKind rendKind = TutorialsClient.tutorialRenderers.get(rendKindName);
-        if (rendKind == null)
-            throw new JsonParseException("Renderer " + rendKindName + " not registered!");
+        var rendKind = TutorialManager.getRender(rendKindName)
+                .orElseThrow(() -> new JsonParseException("Renderer " + rendKindName + " not registered!"));
 
         TutorialObjectRender rend;
 
