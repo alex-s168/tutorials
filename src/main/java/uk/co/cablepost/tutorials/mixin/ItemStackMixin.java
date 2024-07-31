@@ -45,8 +45,10 @@ public abstract class ItemStackMixin {
             return;
         }
 
+        List<Text> display = cir.getReturnValue();
+
         if(TutorialsClient.keyBinding.isUnbound()){
-            cir.getReturnValue().add(new LiteralText("You need to bind the key: '" + new TranslatableText("key.tutorials.open_tutorial").getString() + "' to view tutorial").formatted(Formatting.GOLD));
+            display.add(new LiteralText("You need to bind the key: '" + new TranslatableText("key.tutorials.open_tutorial").getString() + "' to view tutorial").formatted(Formatting.GOLD));
         }
         else{
             String keyName;
@@ -61,10 +63,10 @@ public abstract class ItemStackMixin {
             }
 
             if(TutorialsClient.timeSinceMouseTextInputFocus < 2){
-                cir.getReturnValue().add(new LiteralText("When a text input is not selected,").formatted(Formatting.GOLD));
+                display.add(new LiteralText("When a text input is not selected,").formatted(Formatting.GOLD));
             }
 
-            cir.getReturnValue().add(new LiteralText("Press [" + keyName + "] to view tutorial").formatted(Formatting.GOLD));
+            display.add(new LiteralText("Press [" + keyName + "] to view tutorial").formatted(Formatting.GOLD));
         }
     }
 }

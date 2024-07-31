@@ -12,9 +12,9 @@ public class Tutorial {
 
     public List<String> related_items = new ArrayList<>();
 
+    public List<String> show_for_items = new ArrayList<>();
+
     public int endTime;
 
     public String error_message = "";
-
-    public String copy = null;
 }

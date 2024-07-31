@@ -1,5 +1,8 @@
 {
   "category.tutorials": "Tutorials",
   "key.tutorials.open_tutorial": "Open Tutorial For Item",
-  "container.tutorial": "Tutorial"
+  "container.tutorial": "Tutorial",
+  "tutorials.no_tutorial": "There are no tutorials for this item",
+  "tutorials.no_item_in_game": "Hover over an item to view its tutorials",
+  "tutorials.no_item_in_screen": "Hold an item to view its tutorials"
 }

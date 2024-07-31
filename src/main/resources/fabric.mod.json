@@ -5,11 +5,11 @@
   "name": "Tutorials",
   "description": "Add data driven tutorials to Minecraft",
   "authors": [
-    "BillBodkin"
+    "BillBodkin",
+    "alex_s168"
   ],
   "contact": {
-    "website": "https://cablepost.co.uk",
-    "repo": "https://gitlab.com/billyg270/tutorials"
+    "repo": "https://github.com/alex-s168/tutorials"
   },
   "license": "MIT",
   "icon": "assets/tutorials/icon.png",

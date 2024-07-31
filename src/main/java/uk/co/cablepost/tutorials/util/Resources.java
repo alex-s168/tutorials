@@ -9,6 +9,21 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class Resources {
+    public static String[] resourceLocation(String v)
+            throws Exception {
+        String[] parts = v.split(":");
+
+        if (parts.length == 1) {
+            return new String[] { "minecraft", parts[0] };
+        }
+
+        if (parts.length == 2) {
+            return parts;
+        }
+
+        throw new Exception("Invalid resource location \"" + v + "\"! Example resource location: \"modname:a/b/c\"");
+    }
+
     public static Resource loadAlternatives(Identifier[] alternatives, ResourceManager mngr)
     throws Exception {
         Resource resource = null;
@@ -63,5 +78,22 @@ public class Resources {
                 p + ".png"));
 
         return alt;
+    }
+
+    public static String removeSuffix(String str, String suffix) {
+        if (suffix.length() > str.length())
+            return str;
+
+        int cmpBegin = str.length() - suffix.length();
+
+        for (int i = 0; i < suffix.length(); i ++) {
+            char a = str.charAt(cmpBegin + i);
+            char b = suffix.charAt(i);
+            if (a != b) return str;
+        }
+
+        if (cmpBegin == 0) return "";
+
+        return str.substring(str.length(), cmpBegin - 1);
     }
 }

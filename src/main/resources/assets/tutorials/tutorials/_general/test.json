@@ -2,7 +2,7 @@
   "display_name": "Test",
   "scene_objects": {
     "sand1": {
-        "item_resloc": "minecraft:sand"
+      "item_resloc": "minecraft:sand"
     },
     "bruh": {
     },
@@ -10,6 +10,12 @@
       "texture_resloc": "tutorials:tutorials/water"
     }
   },
+  "related_items": [
+    "minecraft:sand"
+  ],
+  "show_for_items": [
+    "minecraft:sand"
+  ],
   "scene_instructions": [
     {
       "time": 0,
@@ -60,5 +66,6 @@
       "object_id": "sand1",
       "z": 2
     }
-  ]
+  ],
+  "end_time": 60
 }

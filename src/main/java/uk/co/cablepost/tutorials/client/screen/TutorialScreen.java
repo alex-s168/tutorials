@@ -26,14 +26,9 @@ import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import uk.co.cablepost.tutorials.*;
 import uk.co.cablepost.tutorials.client.TutorialsClient;
-import uk.co.cablepost.tutorials.util.Parse;
 import uk.co.cablepost.tutorials.util.Resources;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
@@ -41,8 +36,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     public static final Identifier BACKGROUND_TEXTURE_TUT_COMPLETE = new Identifier(TutorialsClient.MOD_ID, "textures/gui/tutorials/tutorial_complete.png");
     public static final Identifier BUTTONS_TEXTURE = new Identifier(TutorialsClient.MOD_ID, "textures/gui/tutorials/tutorial_buttons.png");
 
-    private String[] tutorialOrder = null;
-    private Map<String, Tutorial> tutorials = null;
+    private List<Tutorial> tutorials = null;
     private Tutorial tutorial = null;
 
     private Identifier tutorialItem = null;
@@ -123,45 +117,14 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     }
 
     public boolean setTutorials(Identifier identifier) {
-        if(TutorialsClient.tutorials.containsKey(identifier)) {
+        if (TutorialsClient.tutorialsByItems.containsKey(identifier)) {
             tutorialItem = identifier;
-            tutorials = TutorialsClient.tutorials.get(identifier);
+            tutorials = TutorialsClient.tutorialsByItems.get(identifier);
 
-            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-                Tutorial tut = entry.getValue();
-                if(tut.copy != null && !tut.copy.equals("")){
-                    String[] tutToCopyParts = tut.copy.split("/");
-                    if(tutToCopyParts.length == 2){
-                        Identifier itemIdOfTutToCopy = new Identifier(tutToCopyParts[0]);
-                        if(TutorialsClient.tutorials.containsKey(itemIdOfTutToCopy)){
-                            Map<String, Tutorial> itemTutorials = TutorialsClient.tutorials.get(itemIdOfTutToCopy);
-                            if(itemTutorials.containsKey(tutToCopyParts[1])){
-                                tut = itemTutorials.get(tutToCopyParts[1]);
-                            }
-                            else{
-                                tut.error_message = "Item does not have tutorial: " + tutToCopyParts[1];
-                                TutorialsClient.LOGGER.error(tut.error_message);
-                            }
-                        }
-                        else{
-                            tut.error_message = "No tutorials for item: " + itemIdOfTutToCopy;
-                            TutorialsClient.LOGGER.error(tut.error_message);
-                        }
-                    }
-                    else{
-                        tut.error_message = "Invalid tutorial ID format: '" + tut.copy + "'. Example of valid format: 'minecraft:furnace/hoppers' (Hoppers tutorial for furnace item).";
-                        TutorialsClient.LOGGER.error(tut.error_message);
-                    }
-
-                    tutorials.put(entry.getKey(), tut);
-                }
-            }
-
-            setTutorialOrder();
-            //return setTutorial(tutorials.entrySet().iterator().next().getKey());
+            tutorials.sort(Comparator.comparingInt(o -> o.priority));
 
             try {
-                return setTutorial(tutorialOrder[0]);
+                return setTutorial(tutorials.get(0));
             } catch (Exception e) {
                 if (tutorial == null) {
                     tutorial = new Tutorial();
@@ -174,87 +137,67 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         return false;
     }
 
-    public void setTutorialOrder(){
-        tutorialOrder = new String[tutorials.size()];
-        int added = 0;
-        while(added < tutorials.size()) {
-            String highest = null;
-            for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-                if(Arrays.stream(tutorialOrder).noneMatch(x -> Objects.equals(x, entry.getKey()))){//not already in tutorialOrder array
-                    if(highest == null || tutorials.get(highest).priority < entry.getValue().priority){//highest of left to add
-                        highest = entry.getKey();
-                    }
-                }
-            }
-            tutorialOrder[added] = highest;
-            added++;
-        }
-    }
-
-    public boolean setTutorial(String tut)
+    public boolean setTutorial(Tutorial tut)
     throws Exception {
         playbackSpeed = 1;
         playbackTime = -1000f;
         firstPlaybackFrames = 0;
-        tutorial = null;
 
-        if(tutorials.containsKey(tut)) {
-            tutorial = tutorials.get(tut);
+        tutorial = tut;
 
-            scene_objects.clear();
+        scene_objects.clear();
 
-            AbstractTutorialObjectInstance camera = new AbstractTutorialObjectInstance();
-            addSceneObject("camera", camera);
-            camera.fov = 66f;
-            camera.x = 0f;
-            camera.y = 2f;
-            camera.z = 10f;
+        AbstractTutorialObjectInstance camera = new AbstractTutorialObjectInstance();
+        addSceneObject("camera", camera);
+        camera.fov = 66f;
+        camera.x = 0f;
+        camera.y = 2f;
+        camera.z = 10f;
 
-            int lastTime = 0;
-            for (TutorialInstruction entry : tutorial.scene_instructions) {
-                if(entry == null){
-                    tutorial.error_message = "There is a 'null' instruction in the tutorial. Check for an extra comma at the end of the instruction list";
-                    TutorialsClient.LOGGER.warn(tutorial.error_message);
-                    entry = new TutorialInstruction();
-                    entry.relative_time = 0;//dud value so doesn't break
-                    entry.object_id = "camera";//dud value so doesn't break
-                }else {
-                    if (entry.relative_time != null) {
-                        entry.time = lastTime + entry.relative_time;
-                    }
-                    lastTime = entry.time;
+        int lastTime = 0;
+        for (TutorialInstruction entry : tutorial.scene_instructions) {
+            if(entry == null){
+                tutorial.error_message = "There is a 'null' instruction in the tutorial. Check for an extra comma at the end of the instruction list";
+                TutorialsClient.LOGGER.warn(tutorial.error_message);
+                entry = new TutorialInstruction();
+                entry.relative_time = 0;//dud value so doesn't break
+                entry.object_id = "camera";//dud value so doesn't break
+            }else {
+                if (entry.relative_time != null) {
+                    entry.time = lastTime + entry.relative_time;
                 }
+                lastTime = entry.time;
+            }
+        }
+
+        tutorial.endTime = lastTime;
+
+        for (Map.Entry<String, TutorialObject> entry : tutorial.scene_objects.entrySet()) {
+            if (entry.getValue().item_resloc != null){
+                //Item
+                TutorialItemObjectInstance x = new TutorialItemObjectInstance();
+                String[] resloc = Resources.resourceLocation(entry.getValue().item_resloc);
+                x.itemStack = new ItemStack(Registry.ITEM.get(new Identifier(resloc[0], resloc[1])));
+                x.asBlock = entry.getValue().as_block != null ? entry.getValue().as_block : false;
+                x.namespace = resloc[0];
+                x.path = resloc[1];
+                addSceneObject(entry.getKey(), x);
             }
 
-            tutorial.endTime = lastTime;
+            if (entry.getValue().texture_resloc != null){
+                //Texture
+                TutorialTextureObjectInstance x = new TutorialTextureObjectInstance();
+                String[] resloc = Resources.resourceLocation(entry.getValue().texture_resloc);
+                x.alternativeIdentifiers = Resources.getAlternatives(new Identifier(resloc[0], resloc[1]));
+                x.namespace = resloc[0];
+                x.path = resloc[1];
+                addSceneObject(entry.getKey(), x);
+            }
 
-            for (Map.Entry<String, TutorialObject> entry : tutorial.scene_objects.entrySet()) {
-                if (entry.getValue().item_resloc != null){
-                    //Item
-                    TutorialItemObjectInstance x = new TutorialItemObjectInstance();
-                    String[] resloc = Parse.resourceLocation(entry.getValue().item_resloc);
-                    x.itemStack = new ItemStack(Registry.ITEM.get(new Identifier(resloc[0], resloc[1])));
-                    x.asBlock = entry.getValue().as_block != null ? entry.getValue().as_block : false;
-                    x.namespace = resloc[0];
-                    x.path = resloc[1];
-                    addSceneObject(entry.getKey(), x);
-                }
-
-                if (entry.getValue().texture_resloc != null){
-                    //Texture
-                    TutorialTextureObjectInstance x = new TutorialTextureObjectInstance();
-                    String[] resloc = Parse.resourceLocation(entry.getValue().texture_resloc);
-                    x.alternativeIdentifiers = Resources.getAlternatives(new Identifier(resloc[0], resloc[1]));
-                    x.namespace = resloc[0];
-                    x.path = resloc[1];
-                    addSceneObject(entry.getKey(), x);
-                }
-
-                if (entry.getValue().item_resloc == null && entry.getValue().texture_resloc == null){
-                    //Just text
-                    AbstractTutorialObjectInstance x = new AbstractTutorialObjectInstance();
-                    addSceneObject(entry.getKey(), x);
-                }
+            if (entry.getValue().item_resloc == null && entry.getValue().texture_resloc == null){
+                //Just text
+                AbstractTutorialObjectInstance x = new AbstractTutorialObjectInstance();
+                addSceneObject(entry.getKey(), x);
             }
         }
 
@@ -296,9 +239,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         if(tutorials != null) {
             int c = 0;
             //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-            for (String s : tutorialOrder) {
-                //Tutorial tut = entry.getValue();
-                Tutorial tut = tutorials.get(s);
+            for (Tutorial tut : tutorials) {
                 boolean mouseOver = mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20;
                 if (Objects.equals(tut.display_name, tutorial.display_name)) {
                     if (mouseOver) {
@@ -847,10 +788,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if(tutorials != null) {
             int c = 0;
-            //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-            for(int i = 0; i < tutorialOrder.length; i++){
-                //Tutorial tut = entry.getValue();
-                Tutorial tut = tutorials.get(tutorialOrder[i]);
+            for (Tutorial tut : tutorials) {
                 this.textRenderer.draw(matrices, tut.display_name, 256 + 2 + 5, c + 15 + 6, 0xc6c6c6);
                 c += 20;
             }
@@ -873,12 +811,11 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if(tutorials != null) {
             int c = 0;
-            //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
-            for(int i = 0; i < tutorialOrder.length; i++){
-                if(mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20){
+            for (Tutorial tut : tutorials){
+                if (mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20){
                     try {
                         client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
-                        setTutorial(tutorialOrder[i]);
+                        setTutorial(tut);
                     } catch (Exception e) {
                         if (tutorial == null) {
                             tutorial = new Tutorial();
@@ -905,11 +842,10 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     if(mouseOver){
                         if(playbackTime >= tutorial.endTime + 20){
                             if(i != 0){
-                                for (String s : tutorialOrder) {
-                                    Tutorial tut = tutorials.get(s);
+                                for (Tutorial tut : tutorials) {
                                     if (Objects.equals(tut.display_name, tutorial.display_name)) {
                                         try {
-                                            setTutorial(s);
+                                            setTutorial(tut);
                                         } catch (Exception e) {
                                             if (tutorial == null) {
                                                 tutorial = new Tutorial();

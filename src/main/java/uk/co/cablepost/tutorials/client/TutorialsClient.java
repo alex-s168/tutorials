@@ -17,6 +17,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
@@ -26,10 +27,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.cablepost.tutorials.Tutorial;
 import uk.co.cablepost.tutorials.client.screen.TutorialScreen;
+import uk.co.cablepost.tutorials.util.Resources;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Environment(EnvType.CLIENT)
@@ -37,7 +41,8 @@ public class TutorialsClient implements ClientModInitializer {
 
     public static final String MOD_ID = "tutorials";
 
-    public static Map<Identifier, Map<String, Tutorial>> tutorials = new HashMap<>();
+    public static Map<Identifier, Tutorial> tutorials = new HashMap<>();
+    public static Map<Identifier, List<Tutorial>> tutorialsByItems = new HashMap<>();
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
@@ -54,17 +59,26 @@ public class TutorialsClient implements ClientModInitializer {
                     public void reload(ResourceManager manager) {
                         Gson GSON = new GsonBuilder().create();
                         tutorials.clear();
+                        tutorialsByItems.clear();
 
-                        for(Identifier id : manager.findResources("tutorials", path -> path.endsWith(".json"))) {
-                            String[] pathParts = id.getPath().replace(".json", "").split("/");
-                            Identifier identifier = new Identifier(id.getNamespace(), pathParts[1]);
+                        for (Identifier id : manager.findResources("tutorials", path -> path.endsWith(".json"))) {
+                            Identifier identifier = Resources.mapPath(id, (p) ->
+                                    Resources.removeSuffix(p, ".json")
+                                            .substring("tutorials/".length()));
 
                             Tutorial tut;
 
-                            try(InputStream stream = manager.getResource(id).getInputStream()) {
+                            try (InputStream stream = manager.getResource(id).getInputStream()) {
                                 String str = IOUtils.toString(stream, StandardCharsets.UTF_8);
                                 tut = GSON.fromJson(str, Tutorial.class);
-                            } catch(Exception e) {
+
+                                for (String item : tut.show_for_items) {
+                                    Identifier itemId = new Identifier(item);
+                                    List<Tutorial> itemTuts = tutorialsByItems.computeIfAbsent(itemId, (ignored) ->
+                                            new ArrayList<>());
+                                    itemTuts.add(tut);
+                                }
+                            } catch (Exception e) {
                                 String msg = "Error while loading tutorial '" + id.getPath() + "': " + e;
                                 LOGGER.error(msg);
                                 tut = new Tutorial();
@@ -72,12 +86,7 @@ public class TutorialsClient implements ClientModInitializer {
                                 tut.error_message = msg;
                             }
 
-                            if(!tutorials.containsKey(identifier)){
-                                tutorials.put(identifier, new HashMap<>());
-                            }
-
-                            Map<String, Tutorial> itemTuts = tutorials.get(identifier);
-                            itemTuts.put(pathParts[2], tut);
+                            tutorials.put(identifier, tut);
                         }
                     }
 
@@ -133,11 +142,13 @@ public class TutorialsClient implements ClientModInitializer {
                 return;
             }
 
+            client.player.sendMessage(new TranslatableText("tutorials.no_item_in_screen"), true);
             client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1.0f, 1.0f);
             return;
         }
 
-        if(timeSinceMouseOverItem > 2){
+        if (timeSinceMouseOverItem > 2) {
+            client.player.sendMessage(new TranslatableText("tutorials.no_item_in_game"), true);
             client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1.0f, 1.0f);
             return;
         }
@@ -152,6 +163,7 @@ public class TutorialsClient implements ClientModInitializer {
 
         Identifier id = Registry.ITEM.getId(item);
         if(!TutorialsClient.tutorials.containsKey(id)){
+            client.player.sendMessage(new TranslatableText("tutorials.no_tutorial"), true);
             client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1.0f, 1.0f);
             return;
         }
