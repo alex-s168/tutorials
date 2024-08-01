@@ -8,6 +8,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import uk.co.cablepost.tutorials.TutorialObjectDeserializer;
 import uk.co.cablepost.tutorials.TutorialsClient;
 
 import java.util.*;

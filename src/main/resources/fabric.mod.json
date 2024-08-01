@@ -16,7 +16,7 @@
   "environment": "*",
   "entrypoints": {
     "client": [
-      "uk.co.cablepost.tutorials.client.TutorialsClient"
+      "uk.co.cablepost.tutorials.TutorialsClient"
     ]
   },
   "mixins": [

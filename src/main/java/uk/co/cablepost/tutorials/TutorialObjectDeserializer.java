@@ -1,8 +1,11 @@
-package me.alex_s168.tutorials.api;
+package uk.co.cablepost.tutorials;
 
 import com.google.gson.*;
+import me.alex_s168.tutorials.api.Interpolator;
+import me.alex_s168.tutorials.api.TutorialManager;
+import me.alex_s168.tutorials.api.TutorialObject;
+import me.alex_s168.tutorials.api.TutorialObjectRender;
 import net.minecraft.util.Identifier;
-import uk.co.cablepost.tutorials.TutorialsClient;
 
 import java.lang.reflect.Type;
 
@@ -12,7 +15,9 @@ public class TutorialObjectDeserializer implements JsonDeserializer<TutorialObje
                                       Type type,
                                       JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
 
+        if (jsonElement == null) return null;
         JsonObject obj = jsonElement.getAsJsonObject();
+        if (obj == null) return null;
 
         Identifier rendKindName = new Identifier(obj.get("kind").getAsString());
         var rendKind = TutorialManager.getRender(rendKindName)

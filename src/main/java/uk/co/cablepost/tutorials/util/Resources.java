@@ -94,6 +94,6 @@ public class Resources {
 
         if (cmpBegin == 0) return "";
 
-        return str.substring(str.length(), cmpBegin - 1);
+        return str.substring(cmpBegin - 1);
     }
 }

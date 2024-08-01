@@ -82,7 +82,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     @Override
     protected void init(){
         super.init();
-
     }
 
     public void setTutorials(Identifier identifier) {
@@ -141,8 +140,10 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         return (f - a) / (b - a);
     }
 
-    boolean isLastKeyFrame() {
-        return tutorial != null && lastKeyframe == tutorial.keyframes().length - 1;
+    boolean isDone() {
+        if (tutorial == null) return false;
+
+        return playbackTime >= tutorial.tut().end_time;
     }
 
     @Override
@@ -157,7 +158,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         DiffuseLighting.disableGuiDepthLighting();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        if (isLastKeyFrame()){
+        if (isDone()){
             RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE_TUT_COMPLETE);
         }
         else{
@@ -258,7 +259,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             /* +++ Rendering */
             for (Map.Entry<String, TutorialInstruction.Keyframe> object : currentKeyframes.entrySet()) {
-                var obj = tutorial.tut().scene_objects.get(object.getKey());
+                var obj = tutorial.tut().getSceneObject(object.getKey());
                 var kf = object.getValue();
 
                 if (kf.base.show) {
@@ -309,7 +310,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
         RenderSystem.setShaderTexture(0, BUTTONS_TEXTURE);
 
-        if (isLastKeyFrame()){
+        if (isDone()){
             this.drawTexture(matrices, withMinusBgWidth + 208-10, heightMinusBgHeight + 180-10, 0, 90, 32, 30);
             playbackSpeed = 0;
         }
@@ -443,7 +444,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                     ;
 
                     if (mouseOver){
-                        if (isLastKeyFrame()){
+                        if (isDone()){
                             if (i != 0){
                                 for (Tutorial.Parsed tut : tutorials) {
                                     if (Objects.equals(tut.tut().display_name, tutorial.tut().display_name)) {

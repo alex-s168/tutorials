@@ -72,8 +72,7 @@ public class TutorialsClient implements ClientModInitializer {
                         TutorialManager.reload(manager, (reg) -> {
                             for (Identifier id : manager.findResources("tutorials", path -> path.endsWith(".json"))) {
                                 var identifier = Resources.mapPath(id, (p) ->
-                                        Resources.removeSuffix(p, ".json")
-                                                .substring("tutorials/".length()));
+                                        Resources.removeSuffix(p, ".json"));
 
                                 try (InputStream stream = manager.getResource(id).getInputStream()) {
                                     var str = IOUtils.toString(stream, StandardCharsets.UTF_8);
