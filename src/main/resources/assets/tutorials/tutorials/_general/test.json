@@ -1,6 +1,6 @@
 {
   "display_name": "Test Tutorial 1",
-  "related_items": ["minecraft:sand"],
+  "related_items": ["minecraft:tnt"],
   "show_for_items": ["minecraft:sand"],
   "scene_objects": {
     "a": {
@@ -15,8 +15,13 @@
   "scene_instructions": [
     {
       "object": "a",
+      "time": 0,
+      "position": [0, -1, 0]
+    },
+    {
+      "object": "a",
       "time": 40,
-      "position": [0, 10, 0]
+      "position": [0, 3, 0]
     }
   ]
 }

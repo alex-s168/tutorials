@@ -1,0 +1,41 @@
+{
+  "display_name": "Using TNT",
+  "related_items": ["minecraft:lever"],
+  "show_for_items": ["minecraft:tnt"],
+  "scene_objects": {
+    "tnt": {
+      "kind": "tutorials:block",
+      "config": {
+        "block": "minecraft:tnt"
+      },
+      "interpolate": "linear"
+    },
+    "lever": {
+      "kind": "tutorials:block",
+      "config": {
+        "block": "minecraft:lever",
+        "state": "face=floor"
+      },
+      "interpolate": "linear"
+    }
+  },
+  "end_time": 80,
+  "scene_instructions": [
+    {
+      "object": "tnt",
+      "time": 0,
+      "position": [0, 0, 0]
+    },
+    {
+      "object": "lever",
+      "time": 0,
+      "visible": false,
+      "position": [0, 1, 0]
+    },
+    {
+      "object": "lever",
+      "time": 40,
+      "visible": true
+    }
+  ]
+}

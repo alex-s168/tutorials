@@ -43,12 +43,12 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     @Nullable
     private Map<String, int[]> keyframesByObject = null;
 
-    private int lastKeyframe = 0;
-
     @Nullable
     private Map<String, State> state = null;
 
     private record State(
+            int keyFrameId,
+
             @NotNull
             TutorialInstruction.Keyframe kf,
 
@@ -56,15 +56,9 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             TutorialInstruction instr
     ) {}
 
-    @Nullable
-    private Identifier tutorialItem = null;
-
     private float playbackTime = 0f;
 
-    public boolean playing = true;
     public int playbackSpeed = 1;
-
-    public int firstPlaybackFrames = 0;
 
     public TutorialScreen(PlayerInventory inventory, Text title) {
         super(new TutorialScreenHandler(), inventory, title);
@@ -85,7 +79,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
     }
 
     public void setTutorials(Identifier identifier) {
-        tutorialItem = identifier;
         tutorials = TutorialManager.byItem(identifier);
 
         tutorials.sort(Comparator.comparingInt(o -> o.tut().priority));
@@ -95,16 +88,14 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     public void setTutorial(Tutorial.Parsed tut) {
         playbackSpeed = 1;
-        playbackTime = -1000f;
-        firstPlaybackFrames = 0;
-
-        tutorial = tut;
+        playbackTime = 0f;
+        tutorial = null;
 
         state = new HashMap<>();
 
         for (Map.Entry<String, TutorialObject> object : tut.tut().scene_objects.entrySet()) {
             var kf = TutorialInstruction.Keyframe.getDefault(object.getValue().renderer.defaultKeyframe());
-            state.put(object.getKey(), new State(kf, null));
+            state.put(object.getKey(), new State(0, kf, null));
         }
 
         for (int i = 0; i < tut.tut().scene_instructions.size(); i ++) {
@@ -115,12 +106,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             var kf = tut.keyframes()[i];
 
-            state.put(instr.object_id, new State(kf, instr));
-
-            lastKeyframe = i;
+            state.put(instr.object_id, new State(i, kf, instr));
         }
-
-        playbackTime = -8f;
 
         keyframesByObject = new HashMap<>();
 
@@ -130,6 +117,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             list = ArrUtil.concat(list, i);
             keyframesByObject.put(instr.object_id, list);
         }
+
+        tutorial = tut;
     }
 
     float lerp(float a, float b, float f) {
@@ -148,11 +137,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
     @Override
     protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
-        if (tutorial != null && playing) {
+        if (tutorial != null) {
             playbackTime += delta * (float) playbackSpeed;
-            if (firstPlaybackFrames < 100){
-                firstPlaybackFrames++;
-            }
         }
 
         DiffuseLighting.disableGuiDepthLighting();
@@ -173,7 +159,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
         if (tutorials != null) {
             int c = 0;
-            //for (Map.Entry<String, Tutorial> entry : tutorials.entrySet()) {
             for (Tutorial.Parsed tut : tutorials) {
                 boolean mouseOver = mouseX >= withMinusBgWidth + 256 + 2 && mouseX <= withMinusBgWidth + 256 + 2 + 108 && mouseY >= heightMinusBgHeight + 15 + c && mouseY <= heightMinusBgHeight + 15 + c + 20;
                 if (Objects.equals(tut.tut().display_name, tutorial.tut().display_name)) {
@@ -205,7 +190,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
             RenderSystem.viewport(((this.width - backgroundWidth) / 2 + 15) * scaleFactor, ((this.height - backgroundHeight) / 2 + 15) * scaleFactor, (256 - 30) * scaleFactor, (backgroundHeight - 30) * scaleFactor);
             Matrix4f matrix4f = Matrix4f.translate(0f, -0.25f, -1f);
-            //matrix4f.multiply(Matrix4f.viewboxMatrix(66.0f, (float)backgroundHeight / 256f, 0.01f, 1000.0f));
             matrix4f.multiply(Matrix4f.viewboxMatrix(camera.fov, ((float)backgroundHeight - 30f) / (256f - 30f), 0.01f, 1000.0f));
             RenderSystem.backupProjectionMatrix();
             RenderSystem.setProjectionMatrix(matrix4f);
@@ -214,9 +198,6 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
             entry.getPositionMatrix().loadIdentity();
             entry.getNormalMatrix().loadIdentity();
 
-            if (firstPlaybackFrames > 25) {//hides the scene from rending till ready
-                matrices.translate(0.0, 0.0f, 1999.84f);
-            }
             matrices.scale(0.2f, 0.24f, 0.2f);
 
             matrices.translate(-camera.pos[0], -camera.pos[1], -camera.pos[2]);
@@ -232,28 +213,31 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
 
             /* +++ Keyframe interpolation */
-            int newLast = lastKeyframe;
             for (Map.Entry<String, State> object : state.entrySet()) {
                 var state = object.getValue();
                 var keyframeIds = keyframesByObject.get(object.getKey());
-                var next = ArrUtil.first(keyframeIds, (x) -> x > lastKeyframe);
+                var next = ArrUtil.first(keyframeIds, (x) -> x > state.keyFrameId);
                 if (next == null) {
                     currentKeyframes.put(object.getKey(), state.kf);
                     continue;
                 }
-                newLast = next;
                 var nextKf = tutorial.keyframes()[next];
                 var nextInst = tutorial.tut().scene_instructions.get(next);
                 var obj = tutorial.tut().scene_objects.get(object.getKey());
 
                 var lastTime = state.instr == null ? 0 : state.instr.time;
                 var nextTime = nextInst.time;
+
                 obj.interpolator.update(invLerp((float) lastTime, (float) nextTime, playbackTime));
 
                 var interp = state.kf.interpolate(nextKf, obj.interpolator);
                 currentKeyframes.put(object.getKey(), interp);
+
+                if (playbackTime >= nextTime) {
+                    object.setValue(new State(next, nextKf, nextInst));
+                    System.out.println("switched to keyframe " + next);
+                }
             }
-            lastKeyframe = newLast;
             /* --- Keyframe interpolation */
 
 
@@ -269,9 +253,11 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
 
                     matrices.scale(kf.base.scale[0], kf.base.scale[1], kf.base.scale[2]);
 
-                    matrices.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(kf.base.rot[0]));
-                    matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(kf.base.rot[1]));
-                    matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(kf.base.rot[2]));
+                    ArrUtil.zipEach(
+                            new Vec3f[]{ Vec3f.POSITIVE_X, Vec3f.POSITIVE_Y, Vec3f.POSITIVE_Z },
+                            kf.base.rot,
+                            (normal, val) -> matrices.multiply(normal.getDegreesQuaternion(val))
+                    );
 
                     var res = obj.renderer.render(TutorialsClient.LOGGER, matrices, immediate, textRenderer, kf.other);
                     res.ifPresent(TutorialsClient.LOGGER::error);
@@ -357,9 +343,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
         int related_c = 0;
         for (String related_item : tutorial.tut().related_items) {
             Identifier id = new Identifier(related_item);
-            if(related_c < 7 && !Objects.equals(tutorialItem.toString(), id.toString())) {
+            if (related_c < 7) {
                 ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(id));
-                //MinecraftClient.getInstance().getItemRenderer().renderInGuiWithOverrides(related_item_item_stack, 256 + 2 + (related_c * 18), 190, 0, 0);
                 int rx = withMinusBgWidth + 256 + 2 + (related_c * 18);
                 int ry = heightMinusBgHeight + 190;
                 if (x >= rx && x <= rx + 16 && y >= ry && y <= ry + 16) {
@@ -384,7 +369,8 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 int related_c = 0;
                 for (String related_item : tutorial.tut().related_items) {
                     Identifier id = new Identifier(related_item);
-                    if(related_c < 7 && !Objects.equals(tutorialItem.toString(), id.toString())) {
+                    // TODO: make scrolling
+                    if (related_c < 7) {
                         ItemStack related_item_item_stack = new ItemStack(Registry.ITEM.get(id));
                         MinecraftClient.getInstance().getItemRenderer()
                                 .renderInGuiWithOverrides(related_item_item_stack, 256 + 2 + (related_c * 18), 190, 0, 0);
@@ -431,7 +417,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                 c += 20;
             }
 
-            if (tutorial != null && playing) {
+            if (tutorial != null) {
                 for (int i = 0; i <= 3; i++) {
                     int x = withMinusBgWidth + 128 + (18 * (i - 2));
                     int y = heightMinusBgHeight + 224 - 18 - 6;
@@ -456,7 +442,7 @@ public class TutorialScreen extends HandledScreen<TutorialScreenHandler> {
                             }
                         }
                         else{
-                            if(playbackSpeed != i) {
+                            if (playbackSpeed != i) {
                                 client.player.playSound(SoundEvents.UI_BUTTON_CLICK, 0.3f, 1.0f);
                                 playbackSpeed = i;
                             }

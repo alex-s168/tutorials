@@ -33,18 +33,20 @@ public class TutorialInstruction {
         public boolean show = true;
         public float[] pos = new float[3];
         public float[] rot = new float[3];
-        public float[] scale = new float[3];
+        public float[] scale = new float[] { 1.0f, 1.0f, 1.0f };
         public float fov = 66f;
 
-        public void from(BaseData o) {
+        public void from(BaseData o) throws JsonParseException {
             show = o.show;
             pos = o.pos.clone();
             rot = o.rot.clone();
             scale = o.scale.clone();
             fov = o.fov;
+
+            verify();
         }
 
-        public void from(JsonElement json) {
+        public void from(JsonElement json) throws JsonParseException {
             JsonObject obj = json.getAsJsonObject();
 
             JsonUtil.with(obj, "position", JsonUtil::asFloatArr, (pos) -> {
@@ -65,6 +67,14 @@ public class TutorialInstruction {
             JsonUtil.with(obj, "fov", JsonElement::getAsFloat, (fov) -> {
                 this.fov = fov;
             });
+
+            verify();
+        }
+
+        public void verify() throws JsonParseException {
+            if (ArrUtil.any(scale, (x) -> x == 0.0f)) {
+                throw new JsonParseException("Scale values can not be zero!");
+            }
         }
 
         public BaseData interpolate(BaseData other, Interpolator interpolator) {
@@ -111,9 +121,14 @@ public class TutorialInstruction {
             JsonObject obj = jsonElement.getAsJsonObject();
 
             String objId = obj.get("object").getAsString();
+
             int time = obj.get("time").getAsInt();
-            BaseData bd = jsonDeserializationContext.deserialize(jsonElement, BaseData.class);
-            JsonElement extra = obj.has("extra") ? obj.get("extra").deepCopy() : null;
+
+            BaseData bd = new BaseData();
+            bd.from(jsonElement);
+
+            JsonElement extra = obj.has("extra")
+                    ? obj.get("extra").deepCopy() : null;
 
             return new TutorialInstruction(objId, time, bd, extra);
         }
